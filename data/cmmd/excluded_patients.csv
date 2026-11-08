@@ -1,0 +1,5 @@
+patient_id,reason
+D1-0202,cross-patient duplicate image (exact)
+D1-0808,cross-patient duplicate image (exact)
+D1-1292,cross-patient duplicate image (exact)
+D2-0284,cross-patient duplicate image (exact)

@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+runs/
+data/*/images/
+data/*/tissue/
+data/*/lesions/
+*.pt
+.ipynb_checkpoints/
+# keep: data/*/index.csv, data/*/split.csv, data/*/split_report.txt, data/*/roi_bank_*.json, results/

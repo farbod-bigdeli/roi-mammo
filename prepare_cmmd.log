@@ -1,0 +1,15 @@
+[info] clinical table: /home/farbod/datasets/cmmd/cmmd/CMMD_clinicaldata_revision.xlsx
+[info] clinical table: 1872 rows -> 1872 labelled breast keys (ID1 and ID2)
+[info] dropped 1458 images of breasts without a biopsy result
+[info] 3744 images, 1775 patients, 1872 breasts
+
+[summary] images by status and label
+label         0     1
+status               
+Benign     1112     0
+Malignant     0  2632
+
+[summary] source image size (px): height median 2294 (range 2294-2294), width median 1914 (range 1914-1914)
+[summary] prepared size: height median 1024, width median 420; tissue fraction median 0.71
+[summary] images with a lesion mask: 0
+[done] wrote data/cmmd/index.csv

@@ -1,0 +1,4 @@
+kind,hash,n_images,n_patients,n_parts,labels,image_ids
+exact,c84eb6ceb590e557e0f43a0a4a8daf2f,2,2,0,0,C_0386_1_R_MLO C_0388_1_R_MLO
+near,0000000000000000000000000000000000000000000000000000000000000000,2,2,2,0/1,C_0301_1_L_CC A_1000_1_L_MLO
+near,3fe07ffd7ffffffffefffefff3dfe91be29be11bf199ff9bfff51fff03ff003f,2,2,0,0,C_0386_1_R_MLO C_0388_1_R_MLO

@@ -1,0 +1,22 @@
+split.csv sha256: 1a032d7c35fce673e27c7f2c180392399b3a28d82906eb87c45a6d4f8bd50865
+seed=2026 test_frac=0.2 folds=4
+
+Partitions:
+       patients  breasts  images  positive_image_rate
+part                                                 
+fold0       389      778    1556             0.190231
+fold1       391      782    1564             0.184143
+fold2       390      780    1560             0.183333
+fold3       390      780    1560             0.194872
+test        390      780    1560             0.196154
+
+Site x breast label (counts):
+label     0    1
+site            
+A      1718  200
+B       388  182
+C       564  258
+D       490  100
+
+Breast-level AUC of predicting the label from site alone: 0.652
+(0.5 = site carries no label information; report this value in the paper.)

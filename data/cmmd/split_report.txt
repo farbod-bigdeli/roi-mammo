@@ -1,0 +1,18 @@
+split.csv sha256: 6cf255800540b3671b12bad1432fbd108429f852345f08279430ee85710f45cd
+seed=2026 test_frac=0.0 folds=5
+
+Partitions:
+       patients  breasts  images  positive_image_rate
+part                                                 
+fold0       355      372     744             0.704301
+fold1       354      373     746             0.699732
+fold2       354      377     754             0.700265
+fold3       354      373     746             0.702413
+fold4       354      372     744             0.709677
+
+Site x breast label (counts):
+label      0     1
+site              
+unknown  554  1313
+
+Only one site or one class: no site shortcut can be estimated.

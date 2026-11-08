@@ -1,0 +1,16 @@
+[info] removed stale index_full.csv, excluded_patients.csv, duplicates.csv, qc.csv: rerun dupcheck, splits (--force), roibank, coverage, qc
+[info] 7808 images, 1952 patients, 3904 breasts
+[info] remove pure-white label patches: True
+
+[summary] images by status and label
+label      0     1
+status            
+Benign  2684     0
+Cancer  1236  1480
+Normal  2408     0
+
+[summary] source image size (px): height median 2671 (range 1088-3481), width median 1477 (range 495-2746)
+[summary] prepared size: height median 1024, width median 474; tissue fraction median 0.68
+[summary] images with a lesion mask: 2829
+[summary] images whose lesion outline fell outside the breast crop: 1 (segmentation misses; listed by roimammo.qc)
+[done] wrote data/miniddsm/index.csv
