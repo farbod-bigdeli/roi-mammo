@@ -1,0 +1,6 @@
+nohup: ignoring input
+[sweep] plan=dev shard=0/1: 44 runs
+[1/44] /home/farbod/miniconda3/envs/roimammo/bin/python -m roimammo.train --data-dir data/miniddsm --out-root runs --mode cv --fold 0 --backbone effb0 --seed 1 --arm none
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[run] miniddsm_effb0_gap_image_none_896x448_e10_cv0_s1 | train 4683 (1171 pts) | eval 1556 (389 pts) | device NVIDIA GeForce RTX 3050 OEM | pos_weight 4.34
+[ep 1/10] epoch=1 loss=1.078 train_s=211.3 data_wait_s=0.5814 train_img_per_s=22.14 peak_alloc_mib=2843 lr_end=0.0001987 eval_s=12.21 eval_img_per_s=127.4 eval_peak_alloc_mib=614.4 auc_unit=0.7443 auc_breast=0.7804 auc_patient=0.8122

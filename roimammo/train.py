@@ -86,12 +86,15 @@ def run_name(a) -> str:
 
 
 @torch.no_grad()
-def predict(model, loader, device, amp):
+def predict(model, loader, device, amp, mf=torch.contiguous_format):
     model.eval()
     rows = []
     for b in loader:
         with torch.autocast(device.type, dtype=torch.float16, enabled=amp and device.type == "cuda"):
-            logit = model(b["x"].to(device, non_blocking=True)).float().cpu()
+            xb = b["x"].to(device, non_blocking=True)
+            if xb.dim() == 4:
+                xb = xb.contiguous(memory_format=mf)
+            logit = model(xb).float().cpu()
         for i in range(len(b["id"])):
             rows.append({"id": b["id"][i], "patient_id": b["patient_id"][i], "breast_id": b["breast_id"][i],
                          "label": int(b["y"][i]), "logit": float(logit[i]),
@@ -134,6 +137,7 @@ def main(argv=None):
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--amp", type=int, default=1)
     ap.add_argument("--grad-ckpt", type=int, default=0, help="gradient checkpointing (saves memory)")
+    ap.add_argument("--channels-last", type=int, default=1, help="NHWC memory layout (faster convnets on GPU)")
     ap.add_argument("--deterministic", type=int, default=0)
     ap.add_argument("--pretrained", type=int, default=1)
     ap.add_argument("--save-ckpt", type=int, default=-1, help="-1 = only in final mode")
@@ -183,6 +187,8 @@ def main(argv=None):
     model = Classifier(a.backbone, a.head, twoview=a.unit == "breast", pretrained=bool(a.pretrained)).to(device)
     if a.grad_ckpt:
         model.set_grad_checkpointing(True)
+    mf = torch.channels_last if (a.channels_last and device.type == "cuda") else torch.contiguous_format
+    model = model.to(memory_format=mf)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=a.wd)
     steps_per_epoch = (a.max_steps or len(tr_dl)) // a.accum
     total = max(1, steps_per_epoch * a.epochs)
@@ -228,16 +234,20 @@ def main(argv=None):
             if a.max_steps and i >= a.max_steps:
                 break
             x, y = b["x"].to(device, non_blocking=True), b["y"].to(device, non_blocking=True)
+            if x.dim() == 4:
+                x = x.contiguous(memory_format=mf)
             if a.arm == "cutmix":
                 x, y = cutmix(x, y, cm_rng)
             with torch.autocast(device.type, dtype=torch.float16, enabled=use_amp):
                 loss = crit(model(x).float(), y) / a.accum
             scaler.scale(loss).backward()
             if (i + 1) % a.accum == 0:
+                scale0 = scaler.get_scale() if use_amp else None
                 scaler.step(opt)
                 scaler.update()
                 opt.zero_grad(set_to_none=True)
-                sched.step()
+                if not use_amp or scaler.get_scale() >= scale0:  # skipped steps (inf grads) do not advance the LR
+                    sched.step()
             loss_sum += loss.item() * a.accum * len(y)
             n += len(y)
             tw = time.perf_counter()
@@ -252,7 +262,7 @@ def main(argv=None):
             if device.type == "cuda":
                 torch.cuda.reset_peak_memory_stats()
             t1 = time.perf_counter()
-            p = predict(model, ev_dl, device, use_amp)
+            p = predict(model, ev_dl, device, use_amp, mf)
             row["eval_s"] = time.perf_counter() - t1
             row["eval_img_per_s"] = len(p) * imgs_per_sample / row["eval_s"]
             row["eval_peak_alloc_mib"] = torch.cuda.max_memory_allocated() / 2**20 if device.type == "cuda" else float("nan")

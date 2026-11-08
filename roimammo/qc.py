@@ -108,7 +108,7 @@ def main(argv=None):
             new = pd.DataFrame({"image_id": bad.image_id, "reason": "not a breast (QC: blank image or label only)"})
             pd.concat([old, new]).drop_duplicates("image_id").to_csv(ex, index=False)
             print(f"[drop] removed {len(bad)} image(s): {', '.join(bad.image_id)}; listed in excluded_images.csv. "
-                  "Splits stay valid (they are by patient); rebuild the ROI banks.")
+                  "Splits and ROI banks stay valid (splits are by patient; extra bank entries are ignored).")
 
 
 if __name__ == "__main__":
