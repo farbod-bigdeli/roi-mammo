@@ -32,6 +32,8 @@ def load_runs(root: Path, mode: str) -> list[dict]:
         cfg = json.load(open(c))
         if cfg["mode"] != mode:
             continue
+        if cfg.get("tag") or cfg.get("max_steps"):  # timing/test runs (e.g. --tag _timing) never enter results
+            continue
         cfg["dir"] = d
         cfg["dataset"] = Path(cfg["data_dir"]).name
         a = cfg["arm"]
