@@ -57,6 +57,7 @@ def evaluate(data_dir: Path, bank: dict, index: pd.DataFrame, repeats: int, seed
                 rh.append(a)
                 rc.append(b_)
             rows.append({"image_id": r.image_id, "patient_id": r.patient_id, "label": r.label, "K": k,
+                         "view": getattr(r, "view", "OTHER"),
                          "hit": h, "coverage": c, "hit_random": np.mean(rh), "coverage_random": np.mean(rc),
                          "lesion_frac_of_breast": les.sum() / max(tis.sum(), 1)})
     return pd.DataFrame(rows)
@@ -100,7 +101,9 @@ def main(argv=None):
         df.to_csv(a.data_dir / f"coverage_{variant}_{a.subset}.csv", index=False)
         for k in KS:
             d = df[df.K == k]
-            for lab, dd in [("all lesions", d), ("cancer", d[d.label == 1]), ("benign", d[d.label == 0])]:
+            subsets = [("all lesions", d), ("cancer", d[d.label == 1]), ("benign", d[d.label == 0]),
+                       ("CC views", d[d.view == "CC"]), ("MLO views", d[d.view == "MLO"])]  # views: exploratory
+            for lab, dd in subsets:
                 if dd.empty:
                     continue
                 lo, hi = boot_ci(dd, "hit")

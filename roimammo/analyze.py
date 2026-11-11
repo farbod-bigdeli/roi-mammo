@@ -150,12 +150,19 @@ def cmd_select(a):
             curves.append({"arm_label": r["arm_label"], "fold": r["fold"], "epoch": ep, "auc": m["auc"]})
     if curves:
         c = pd.DataFrame(curves)
-        keep = ["none"] + [x for x in c.arm_label.unique() if x != "none"][: a.max_curves - 1]
+        keep = [x for x in ("none", "rrc", "cutmix") if x in set(c.arm_label)]
+        cj = a.out / f"chosen_{a.dataset}.json"
+        if cj.exists():  # the selected ROI setting
+            ch = json.load(open(cj))
+            lab = f"roi[p={ch['p_crop']:g},j={ch['jitter']:g},K={ch['roi_k']},{ch['bank']}]"
+            if lab in set(c.arm_label):
+                keep.append(lab)
+        names = {"none": "standard", "rrc": "RandomResizedCrop", "cutmix": "CutMix"}
         fig, ax = plt.subplots(figsize=(5.5, 3.6))
         for lab in keep:
             g = c[c.arm_label == lab].groupby("epoch").auc
             mu, sd = g.mean(), g.std()
-            ax.plot(mu.index, mu, label=lab, lw=1.4)
+            ax.plot(mu.index, mu, label=names.get(lab, "ROI crop (selected) " + lab[3:] if lab.startswith("roi[") else lab), lw=1.4)
             ax.fill_between(mu.index, mu - sd, mu + sd, alpha=0.15)
         ax.set_xlabel("epoch")
         ax.set_ylabel(f"held-out {a.level} AUC (mean $\\pm$ SD over folds)")
