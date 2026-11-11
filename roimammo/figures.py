@@ -76,11 +76,14 @@ def arms(a):
     pool = idx[idx.has_lesion_mask.astype(bool) & (idx.label == 1)]
     pool = pool if len(pool) >= a.n else idx
     df = pool.sample(a.n, random_state=a.seed)
-    names = [("none", "Standard"), ("rrc", "RandomResizedCrop"), ("randcrop", "Random crop"), ("roi", "ROI crop")]
+    names = [("none", "Standard", "letterbox"), ("rrc", "RandomResizedCrop", "letterbox"),
+             ("randcrop", "Random crop", "letterbox"), ("roi", "ROI crop", "letterbox")]
+    if a.fill:
+        names += [("randcrop", "Random crop (fill)", "fill"), ("roi", "ROI crop (fill)", "fill")]
     fig, axes = plt.subplots(len(names), a.n, figsize=(1.35 * a.n + 0.6, 1.95 * len(names)), squeeze=False)
-    for (arm, title), row in zip(names, axes):
+    for (arm, title, fit), row in zip(names, axes):
         ds = MammoDataset(df, a.data_dir, img_hw=(a.img_h, a.img_w), train=True, arm=arm, p_crop=1.0,
-                          jitter=0.1, roi_bank=bank, seed=a.seed)
+                          jitter=0.1, roi_bank=bank, roi_k=a.roi_k, seed=a.seed, crop_fit=fit)
         for i, ax in enumerate(row):
             x = ds[i]["x"].numpy()[0] * STD[0] + MEAN[0]
             ax.imshow(np.clip(x, 0, 1), cmap="gray", vmin=0, vmax=1)
@@ -105,8 +108,10 @@ def main(argv=None):
         s.add_argument("--out", type=Path, default=Path("results"))
         s.add_argument("--seed", type=int, default=0)
         s.add_argument("--n", type=int, default=5)
-        s.add_argument("--img-h", type=int, default=384)
-        s.add_argument("--img-w", type=int, default=256)
+        s.add_argument("--img-h", type=int, default=448)  # same 2:1 aspect as the training input
+        s.add_argument("--img-w", type=int, default=224)
+        s.add_argument("--roi-k", type=int, default=1, help="arms: boxes to draw from (the chosen K)")
+        s.add_argument("--fill", type=int, default=1, help="arms: also show the crop-fill variant (addendum A1)")
     a = ap.parse_args(argv)
     a.out.mkdir(parents=True, exist_ok=True)
     examples(a) if a.cmd == "examples" else arms(a)

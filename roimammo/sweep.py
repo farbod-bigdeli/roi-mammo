@@ -11,6 +11,14 @@ Plans
     final     every dataset x backbone (effb0, resnet50, convnext_t):
               effb0: none, rrc, cutmix, randcrop, roi; other backbones: none, randcrop, roi
     extra     effb0: attention-MIL head and two-view (CC+MLO) model, each with none and roi
+Addendum (ANALYSIS_PLAN.md, added after the main results; all runs carry --study addendum and
+never enter the pre-registered main analysis):
+    addendum-tune  ConvNeXt-T learning rate in {2e-4, 1e-4, 5e-5}, standard augmentation,
+                   Mini-DDSM development folds, seed 1
+                   -> then: python -m roimammo.analyze select-lr   (writes chosen_lr_convnext_t.json)
+    addendum       A2 ConvNeXt-T none/randcrop/roi at the chosen learning rate (all datasets)
+                   A1 crop-fill: effb0 and resnet50, randcrop and roi with --crop-fit fill
+                   A3 out-of-fold datasets: seeds 2 and 3 for effb0 (5 arms) and resnet50 (3 arms)
 Final/extra evaluation: datasets with a locked test set (Mini-DDSM) use seeds 1-3, one run per
 seed. Datasets without a test set (CMMD, splits made with --test-frac 0) are evaluated
 out-of-fold: one run per fold with seed 1 (--oof-seeds), pooled by the analysis.
@@ -40,6 +48,8 @@ GRID_JITTER = 0.1
 ABL_JITTER = (0.0, 0.2)
 ABL_K = (1, 3, 5, 10)
 ABL_BANKS = ("blend", "intensity", "var", "log", "random")
+ADD_LRS = (2e-4, 1e-4, 5e-5)      # addendum A2: ConvNeXt-T learning-rate grid
+ADD_OOF_SEEDS = (2, 3)            # addendum A3: extra seeds for out-of-fold datasets
 
 
 def chosen(results: Path, dataset="miniddsm") -> dict:
@@ -113,6 +123,45 @@ def plan(name: str, a) -> list[list[str]]:
                         for arm in ("none", "roi"):
                             x = ["--arm", arm] + (["--bank", bank(ds, cb), *crop] if arm == "roi" else [])
                             cmds.append(run(ds, *base, "--backbone", "effb0", *variant, *x))
+    elif name == "addendum-tune":
+        ds = "miniddsm"
+        for fold in range(a.folds):
+            for lr in ADD_LRS:
+                cmds.append(run(ds, "--mode", "cv", "--fold", fold, "--backbone", "convnext_t", "--seed", 1,
+                                "--arm", "none", "--lr", lr, "--study", "addendum"))
+    elif name == "addendum":
+        c = chosen(a.results)
+        crop = ["--p-crop", c["p_crop"], "--jitter", c["jitter"], "--roi-k", c["roi_k"]]
+        cb = c.get("bank", "blend")
+        f = a.results / "chosen_lr_convnext_t.json"
+        if not f.exists():
+            sys.exit(f"{f} missing: run --plan addendum-tune and 'python -m roimammo.analyze select-lr' first")
+        lr = json.load(open(f))["lr"]
+        add = ["--study", "addendum"]
+        for ds in a.datasets:  # A2: ConvNeXt-T at the chosen learning rate
+            for seed, fold in eval_units(a.data_root / ds, a.seeds, a.oof_seeds):
+                base = ["--mode", "final", "--seed", seed] + (["--fold", fold] if fold is not None else [])
+                for arm in ("none", "randcrop", "roi"):
+                    x = ["--arm", arm] + (["--bank", bank(ds, cb), *crop] if arm != "none" else [])
+                    cmds.append(run(ds, *base, "--backbone", "convnext_t", "--lr", lr, *x, *add))
+        for ds in a.datasets:  # A1: crops widened to the input aspect ratio
+            for seed, fold in eval_units(a.data_root / ds, a.seeds, a.oof_seeds):
+                base = ["--mode", "final", "--seed", seed] + (["--fold", fold] if fold is not None else [])
+                for bb in ("effb0", "resnet50"):
+                    for arm in ("randcrop", "roi"):
+                        cmds.append(run(ds, *base, "--backbone", bb, "--arm", arm, "--bank", bank(ds, cb), *crop,
+                                        "--crop-fit", "fill", *add))
+        for ds in a.datasets:  # A3: more seeds where there is no test set
+            sp = pd.read_csv(a.data_root / ds / "split.csv")
+            if (sp.split == "test").any():
+                continue
+            for seed, fold in eval_units(a.data_root / ds, a.seeds, ADD_OOF_SEEDS):
+                base = ["--mode", "final", "--seed", seed, "--fold", fold]
+                for bb, arms in (("effb0", ("none", "rrc", "cutmix", "randcrop", "roi")),
+                                 ("resnet50", ("none", "randcrop", "roi"))):
+                    for arm in arms:
+                        x = ["--arm", arm] + (["--bank", bank(ds, cb), *crop] if arm in ("roi", "randcrop") else [])
+                        cmds.append(run(ds, *base, "--backbone", bb, *x, *add))
     else:
         sys.exit(f"unknown plan {name}")
     return [[str(t) for t in c] + a.passthrough for c in cmds]
@@ -123,7 +172,7 @@ def main(argv=None):
     passthrough = argv[argv.index("--") + 1:] if "--" in argv else []
     argv = argv[: argv.index("--")] if "--" in argv else argv
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--plan", required=True, choices=["dev", "ablation", "final", "extra"])
+    ap.add_argument("--plan", required=True, choices=["dev", "ablation", "final", "extra", "addendum-tune", "addendum"])
     ap.add_argument("--data-root", type=Path, default=Path("data"))
     ap.add_argument("--runs", type=Path, default=Path("runs"))
     ap.add_argument("--results", type=Path, default=Path("results"))

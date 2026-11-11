@@ -73,10 +73,17 @@ def has_test_set(data_dir: Path) -> bool:
     return (pd.read_csv(data_dir / "split.csv").split == "test").any()
 
 
+DEFAULT_LR = 2e-4
+
+
 def run_name(a) -> str:
     crop = ""
     if a.arm in ("roi", "randcrop"):
         crop = f"_p{a.p_crop:g}_j{a.jitter:g}_k{a.roi_k}_{Path(a.bank).stem.replace('roi_bank_', '')}"
+        if getattr(a, "crop_fit", "letterbox") == "fill":
+            crop += "_fill"
+    if getattr(a, "lr", DEFAULT_LR) != DEFAULT_LR:  # non-default recipes get their own name (addendum)
+        crop += f"_lr{a.lr:g}"
     if a.mode == "cv":
         part = f"cv{a.fold}"
     else:
@@ -129,7 +136,7 @@ def main(argv=None):
     ap.add_argument("--epochs", type=int, default=10)
     ap.add_argument("--batch", type=int, default=8)
     ap.add_argument("--accum", type=int, default=2, help="gradient accumulation steps")
-    ap.add_argument("--lr", type=float, default=2e-4)
+    ap.add_argument("--lr", type=float, default=DEFAULT_LR)
     ap.add_argument("--wd", type=float, default=0.01)
     ap.add_argument("--warmup", type=float, default=0.05, help="fraction of steps")
     ap.add_argument("--pos-weight", default="auto", help="'auto' = negatives/positives in training data")
@@ -143,6 +150,10 @@ def main(argv=None):
     ap.add_argument("--save-ckpt", type=int, default=-1, help="-1 = only in final mode")
     ap.add_argument("--out-root", type=Path, default=Path("runs"))
     ap.add_argument("--tag", default="")
+    ap.add_argument("--crop-fit", choices=["letterbox", "fill"], default="letterbox",
+                    help="fill: widen roi/randcrop boxes to the input aspect ratio (addendum sensitivity analysis)")
+    ap.add_argument("--study", choices=["main", "addendum"], default="main",
+                    help="addendum runs are kept out of the pre-registered main analysis")
     ap.add_argument("--max-steps", type=int, default=0, help="stop each epoch after N batches (testing)")
     ap.add_argument("--cpu", action="store_true")
     a = ap.parse_args(argv)
@@ -173,7 +184,7 @@ def main(argv=None):
     bank = json.load(open(a.bank))["boxes"] if a.bank else None
     common = dict(data_dir=a.data_dir, img_hw=(a.img_h, a.img_w), unit=a.unit, seed=a.seed)
     tr_ds = MammoDataset(tr, train=True, arm=a.arm, p_crop=a.p_crop, jitter=a.jitter, roi_bank=bank,
-                         roi_k=a.roi_k, **common)
+                         roi_k=a.roi_k, crop_fit=a.crop_fit, **common)
     ev_ds = MammoDataset(ev, train=False, **common)
     g = torch.Generator().manual_seed(a.seed)
     pin = device.type == "cuda"

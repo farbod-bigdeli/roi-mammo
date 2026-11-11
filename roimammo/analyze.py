@@ -23,7 +23,9 @@ import pandas as pd
 from .metrics import aggregate, all_metrics, delong_paired, holm, paired_cluster_bootstrap
 
 
-def load_runs(root: Path, mode: str) -> list[dict]:
+def load_runs(root: Path, mode: str, study: str = "main") -> list[dict]:
+    """Finished runs of one mode. study="main": the pre-registered runs only (default);
+    study="all": main and addendum runs together (sensitivity analyses)."""
     runs = []
     for c in sorted(root.glob("*/config.json")):
         d = c.parent
@@ -34,14 +36,18 @@ def load_runs(root: Path, mode: str) -> list[dict]:
             continue
         if cfg.get("tag") or cfg.get("max_steps"):  # timing/test runs (e.g. --tag _timing) never enter results
             continue
+        if study == "main" and cfg.get("study", "main") != "main":
+            continue
         cfg["dir"] = d
         cfg["dataset"] = Path(cfg["data_dir"]).name
         a = cfg["arm"]
         if a in ("roi", "randcrop"):
             bank = Path(cfg["bank"]).stem.replace("roi_bank_", "")
-            a = f"{a}[p={cfg['p_crop']:g},j={cfg['jitter']:g},K={cfg['roi_k']},{bank}]"
+            fill = ",fill" if cfg.get("crop_fit", "letterbox") == "fill" else ""
+            a = f"{a}[p={cfg['p_crop']:g},j={cfg['jitter']:g},K={cfg['roi_k']},{bank}{fill}]"
         cfg["arm_label"] = a
-        cfg["model"] = f"{cfg['backbone']}/{cfg['head']}/{cfg['unit']}"
+        lr = float(cfg.get("lr", 2e-4))
+        cfg["model"] = f"{cfg['backbone']}/{cfg['head']}/{cfg['unit']}" + (f"@lr{lr:g}" if lr != 2e-4 else "")
         cfg["dirs"] = [d]
         runs.append(cfg)
     return runs
@@ -188,12 +194,42 @@ def comparisons_for(arms: list[str]) -> list[tuple[str, str]]:
     return comps
 
 
+def cmd_select_lr(a):
+    """Addendum rule (ANALYSIS_PLAN.md, addendum A2): among the learning rates run with standard
+    augmentation on all development folds, take the one with the highest mean breast-level AUC.
+    The final training loss is reported so that non-converged settings are visible."""
+    runs = [r for r in load_runs(a.runs, "cv", study="all") if r["dataset"] == a.dataset
+            and r["backbone"] == a.backbone and r["arm"] == "none" and r["head"] == "gap" and r["unit"] == "image"]
+    if not runs:
+        raise SystemExit("no finished cv runs for this backbone")
+    rows = []
+    for r in runs:
+        m = all_metrics(*unit_preds(r, a.level)[["label", "prob"]].T.to_numpy())
+        lg = pd.read_csv(r["dir"] / "log.csv")
+        rows.append({"lr": float(r.get("lr", 2e-4)), "fold": r["fold"], "auc": m["auc"],
+                     "final_loss": float(lg.loss.iloc[-1]), "first_loss": float(lg.loss.iloc[0])})
+    df = pd.DataFrame(rows)
+    nf = df.groupby("lr").fold.nunique()
+    complete = nf[nf == nf.max()].index
+    s = df[df.lr.isin(complete)].groupby("lr").agg(auc_mean=("auc", "mean"), auc_sd=("auc", "std"),
+                                                   final_loss_mean=("final_loss", "mean"),
+                                                   first_loss_mean=("first_loss", "mean"), folds=("fold", "nunique"))
+    print(s.to_string(float_format=lambda v: f"{v:.4f}"))
+    best = float(s.auc_mean.idxmax())
+    a.out.mkdir(parents=True, exist_ok=True)
+    df.to_csv(a.out / f"lr_runs_{a.dataset}_{a.backbone}.csv", index=False)
+    json.dump({"backbone": a.backbone, "lr": best, "selected_on": f"mean {a.level}-level AUC, standard augmentation, "
+               f"{int(s.folds.max())} development folds", "grid": {f"{k:g}": round(v, 5) for k, v in s.auc_mean.items()}},
+              open(a.out / f"chosen_lr_{a.backbone}.json", "w"), indent=1)
+    print(f"[chosen] {a.backbone} lr={best:g}")
+
+
 def cmd_final(a):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    runs = pool_oof(load_runs(a.runs, "final"))
+    runs = pool_oof(load_runs(a.runs, "final", a.study))
     if not runs:
         raise SystemExit("no finished final runs")
     a.out.mkdir(parents=True, exist_ok=True)
@@ -275,8 +311,11 @@ def pretty_arm(label: str, all_labels) -> str:
 
 
 def pretty_model(m: str) -> str:
+    m, _, lr = m.partition("@")
     bb, head, unit = m.split("/")
     s = MODEL_PRETTY.get(bb, bb)
+    if lr:
+        s += f" ({lr.replace('lr', 'lr ')})"
     if head == "attnmil":
         s += " + attention-MIL"
     if unit == "breast":
@@ -335,14 +374,22 @@ def main(argv=None):
     s.add_argument("--level", default="breast", choices=["unit", "breast", "patient"])
     s.add_argument("--max-curves", type=int, default=5)
     s.add_argument("--out", type=Path, default=Path("results"))
+    s2 = sub.add_parser("select-lr", help="addendum: choose a backbone's learning rate on development folds")
+    s2.add_argument("--runs", type=Path, default=Path("runs"))
+    s2.add_argument("--dataset", default="miniddsm")
+    s2.add_argument("--backbone", default="convnext_t")
+    s2.add_argument("--level", default="breast", choices=["unit", "breast", "patient"])
+    s2.add_argument("--out", type=Path, default=Path("results"))
     f = sub.add_parser("final")
+    f.add_argument("--study", default="main", choices=["main", "all"],
+                   help="main: pre-registered runs only; all: include addendum runs (sensitivity analyses)")
     f.add_argument("--runs", type=Path, default=Path("runs"))
     f.add_argument("--level", default="breast", choices=["unit", "breast", "patient"])
     f.add_argument("--margin", type=float, default=0.01)
     f.add_argument("--n-boot", type=int, default=2000)
     f.add_argument("--out", type=Path, default=Path("results"))
     a = ap.parse_args(argv)
-    cmd_select(a) if a.cmd == "select" else cmd_final(a)
+    {"select": cmd_select, "select-lr": cmd_select_lr, "final": cmd_final}[a.cmd](a)
 
 
 if __name__ == "__main__":

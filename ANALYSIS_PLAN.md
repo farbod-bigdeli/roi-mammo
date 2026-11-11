@@ -81,3 +81,34 @@ position in the breast, same p and jitter); + ROI crop (chosen setting).
 ## Reporting
 All results are reported whatever their direction, including null and negative results.
 Any deviation from this plan is listed in the paper with its reason.
+
+## Addendum (written 11 Nov 2026, after the main results; fixed before any addendum run)
+The main analysis above is final and is not changed by this addendum. Three sensitivity analyses
+were added because the main results raised specific questions. Every addendum run is trained with
+`--study addendum` and is excluded from the main analysis (`analyze final`, default
+`--study main`); the addendum is analysed with `analyze final --study all --out results/addendum`.
+
+**A1. Crop fit.** In the main protocol a roughly square crop is letterboxed into the 896x448
+input, leaving about half of the input as zero padding. A1 repeats the two crop arms with the
+box widened along its short side to the input aspect ratio (same centre, shifted to stay in the
+image; `--crop-fit fill`), after the same tissue check. Backbones: EfficientNet-B0, ResNet-50.
+Datasets and seeds as in the main final plan. Comparisons: ROI-fill vs Standard, Random-fill vs
+Standard, ROI-fill vs Random-fill (Standard runs reused from the main study). No selection.
+
+**A2. ConvNeXt-T learning rate.** Under the main recipe (lr 2e-4) ConvNeXt-T often stayed on its
+initial loss plateau. A2 chooses the ConvNeXt-T learning rate on the Mini-DDSM development folds
+only: lr in {2e-4, 1e-4, 5e-5}, standard augmentation, four folds, seed 1, everything else
+unchanged. Rule: the highest mean breast-level development AUC (`analyze select-lr`); the final
+training loss is reported for every setting. The test set is not used for this choice. With the
+chosen lr, ConvNeXt-T is retrained with Standard, Random crop and ROI crop (letterbox), datasets
+and seeds as in the main final plan, and compared as in the primary analysis.
+
+**A3. More seeds for CMMD.** The main CMMD results use one seed per fold. A3 adds seeds 2 and 3
+for EfficientNet-B0 (all five arms) and ResNet-50 (three arms); the analysis then averages AUC
+differences over three seeds, as for Mini-DDSM.
+
+**Analysis.** All addendum comparisons are computed as in the primary analysis (patient bootstrap,
+2,000 replicates, equivalence margin +-0.01). Holm correction is applied within the addendum
+output, which also re-reports the main comparisons with the added seeds. Addendum results are
+reported as sensitivity analyses, separately from the pre-registered results, whatever their
+direction.

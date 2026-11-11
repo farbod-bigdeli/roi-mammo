@@ -12,7 +12,10 @@ Uniform(-a, a)) is applied identically in both arms. Crops with less than 30 % b
 are redrawn (up to 10 times).
 
 All images are letterboxed (aspect preserved, zero padding) to (img_h, img_w), so full images
-and square crops are not distorted differently.
+and square crops are not distorted differently. With crop_fit="fill" (addendum), a roi/randcrop
+box that passed the tissue check is first widened along its short side to the input aspect ratio
+(around the same centre, shifted to stay inside the image), so the crop fills the input frame
+instead of leaving about half of it as padding. Both crop arms use the same rule.
 
 Randomness: every sample draws from np.random.default_rng([seed, epoch, index]), so runs are
 reproducible regardless of the number of data-loader workers.
@@ -56,6 +59,19 @@ def jitter_box(b, W, H, a: float, rng):
     return [nx0, ny0, nx1, ny1]
 
 
+def fit_aspect(x0, y0, x1, y1, W, H, ratio_hw: float):
+    """Grow a box along its short side to height/width = ratio_hw, keep the centre, stay in the image."""
+    w, h = x1 - x0, y1 - y0
+    if h / w < ratio_hw:
+        h = min(H, w * ratio_hw)
+    else:
+        w = min(W, h / ratio_hw)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    nx0 = int(round(np.clip(cx - w / 2, 0, W - w)))
+    ny0 = int(round(np.clip(cy - h / 2, 0, H - h)))
+    return [nx0, ny0, min(W, nx0 + int(round(w))), min(H, ny0 + int(round(h)))]
+
+
 def photometric_geometric(img: np.ndarray, rng) -> np.ndarray:
     if rng.random() < 0.5:
         img = img[:, ::-1]
@@ -75,7 +91,7 @@ def photometric_geometric(img: np.ndarray, rng) -> np.ndarray:
 class MammoDataset(Dataset):
     def __init__(self, df: pd.DataFrame, data_dir, img_hw=(896, 448), train=False, arm="none",
                  p_crop=0.1, jitter=0.1, roi_bank: dict | None = None, roi_k=5, unit="image",
-                 seed=0, rrc_scale=(0.3, 1.0), min_tissue=0.3):
+                 seed=0, rrc_scale=(0.3, 1.0), min_tissue=0.3, crop_fit="letterbox"):
         if arm not in ARMS:
             raise ValueError(f"arm must be one of {ARMS}")
         self.df = df.reset_index(drop=True)
@@ -84,6 +100,9 @@ class MammoDataset(Dataset):
         self.train, self.arm, self.p, self.jit = train, arm, p_crop, jitter
         self.bank, self.k, self.unit = roi_bank or {}, roi_k, unit
         self.seed, self.epoch, self.rrc_scale, self.min_tissue = seed, 0, rrc_scale, min_tissue
+        if crop_fit not in ("letterbox", "fill"):
+            raise ValueError("crop_fit must be 'letterbox' or 'fill'")
+        self.crop_fit = crop_fit
         if unit == "breast":
             self.groups = []
             for bid, g in self.df.groupby("breast_id", sort=True):
@@ -136,8 +155,11 @@ class MammoDataset(Dataset):
                 b = random_box_like(b[2] - b[0], b[3] - b[1], tissue, rng)
             x0, y0, x1, y1 = jitter_box(b, W, H, self.jit, rng)
             if tissue[y0:y1, x0:x1].mean() >= self.min_tissue:
-                return img[y0:y1, x0:x1]
-        x0, y0, x1, y1 = boxes[0][:4]
+                break
+        else:
+            x0, y0, x1, y1 = boxes[0][:4]
+        if self.crop_fit == "fill":
+            x0, y0, x1, y1 = fit_aspect(x0, y0, x1, y1, W, H, self.h / self.w)
         return img[y0:y1, x0:x1]
 
     def _one(self, i, rng):

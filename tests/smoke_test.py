@@ -46,10 +46,26 @@ def main():
     for p in ("ablation", "extra"):  # plan generation only
         sh("roimammo.sweep", "--plan", p, "--data-root", data, "--runs", runs, "--results", res, "--folds", 2, "--dry-run")
     sh("roimammo.analyze", "final", "--runs", runs, "--out", res, "--n-boot", 200)
+    sh("roimammo.sitecheck", "--runs", runs, "--data-root", data, "--dataset", "miniddsm", "--out", res)
+    # addendum: ConvNeXt-T learning-rate choice, crop-fill sensitivity, extra out-of-fold seeds
+    sh("roimammo.sweep", "--plan", "addendum-tune", "--data-root", data, "--runs", runs, "--folds", 2, "--", *tiny)
+    sh("roimammo.analyze", "select-lr", "--runs", runs, "--out", res)
+    sh("roimammo.sweep", "--plan", "addendum", "--data-root", data, "--runs", runs, "--results", res, "--seeds", 1, 2,
+       "--dry-run")
+    sh("roimammo.sweep", "--plan", "addendum", "--data-root", data, "--runs", runs, "--results", res, "--seeds", 1, 2,
+       "--datasets", "miniddsm", "--filter", "--backbone effb0", "--", *tiny)
+    sh("roimammo.sweep", "--plan", "addendum", "--data-root", data, "--runs", runs, "--results", res, "--seeds", 1, 2,
+       "--datasets", "cmmd", "--filter", "--seed 2", "--", *tiny)
+    before = (res / "comparisons_breast.csv").read_bytes()
+    sh("roimammo.analyze", "final", "--runs", runs, "--out", res, "--n-boot", 200)  # main analysis must ignore addendum runs
+    if (res / "comparisons_breast.csv").read_bytes() != before:
+        sys.exit("SMOKE TEST FAILED: addendum runs changed the main analysis")
+    sh("roimammo.analyze", "final", "--study", "all", "--runs", runs, "--out", res / "addendum", "--n-boot", 200)
     sh("roimammo.figures", "examples", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     sh("roimammo.figures", "arms", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     need = ["chosen_miniddsm.json", "comparisons_breast.csv", "forest_breast.pdf", "final_summary_breast.csv",
-            "efficiency.csv", "fig_examples_miniddsm.pdf", "fig_arms_miniddsm.pdf", "cv_grid_miniddsm_effb0.pdf"]
+            "efficiency.csv", "fig_examples_miniddsm.pdf", "fig_arms_miniddsm.pdf", "cv_grid_miniddsm_effb0.pdf",
+            "chosen_lr_convnext_t.json", "addendum/comparisons_breast.csv"]
     missing = [n for n in need if not (res / n).exists()]
     if missing:
         sys.exit(f"SMOKE TEST FAILED, missing: {missing}")
