@@ -1,0 +1,28 @@
+Test breasts by site:
+        n  n_pos
+site            
+A     382     38
+B     114     42
+C     166     52
+D     118     21
+Development positive rate by site: {'A': 0.105, 'B': 0.307, 'C': 0.314, 'D': 0.167}
+Site-only baseline, breast-level test AUC: 0.6719
+
+                                                             all      A      B      C      D  mean_within_site
+model                arm                                                                                      
+convnext_t/gap/image none                                 0.8311 0.7608 0.7935 0.8741 0.7937            0.8055
+                     randcrop[p=0.25,j=0.1,K=1,intensity] 0.6962 0.6529 0.5683 0.7422 0.6259            0.6473
+                     roi[p=0.25,j=0.1,K=1,intensity]      0.7871 0.7111 0.7198 0.8445 0.7105            0.7465
+effb0/attnmil/image  none                                 0.8818 0.8297 0.8599 0.9107 0.8696            0.8675
+                     roi[p=0.25,j=0.1,K=1,intensity]      0.8753 0.8138 0.8622 0.9103 0.8416            0.8570
+effb0/gap/breast     none                                 0.8424 0.7944 0.8159 0.8630 0.7949            0.8170
+                     roi[p=0.25,j=0.1,K=1,intensity]      0.8634 0.8258 0.8083 0.8925 0.8176            0.8360
+effb0/gap/image      cutmix                               0.8801 0.8235 0.8654 0.9164 0.8444            0.8624
+                     none                                 0.8675 0.8008 0.8587 0.9000 0.8411            0.8501
+                     randcrop[p=0.25,j=0.1,K=1,intensity] 0.8797 0.8225 0.8525 0.9261 0.8375            0.8597
+                     roi[p=0.25,j=0.1,K=1,intensity]      0.8752 0.8204 0.8392 0.9171 0.8455            0.8555
+                     rrc                                  0.8664 0.8127 0.8457 0.9010 0.8117            0.8428
+resnet50/gap/image   none                                 0.8438 0.8192 0.7593 0.8617 0.8105            0.8127
+                     randcrop[p=0.25,j=0.1,K=1,intensity] 0.8404 0.8024 0.7805 0.8670 0.7753            0.8063
+                     roi[p=0.25,j=0.1,K=1,intensity]      0.8429 0.8188 0.7811 0.8677 0.7843            0.8130
+[done] results/site_auc_miniddsm.csv

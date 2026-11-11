@@ -1,0 +1,22 @@
+                                      auc_mean  auc_sd  pr_auc_mean  n_runs  folds
+arm_label                                                                         
+cutmix                                  0.8615  0.0156       0.6829       4      4
+roi[p=0.25,j=0,K=1,intensity]           0.8561  0.0274       0.6764       4      4
+roi[p=0.25,j=0.1,K=1,intensity]         0.8522  0.0195       0.6718       4      4
+roi[p=0.1,j=0.1,K=5,blend]              0.8509  0.0165       0.6811       4      4
+roi[p=0.25,j=0.2,K=1,intensity]         0.8493  0.0198       0.6701       4      4
+roi[p=0.25,j=0.1,K=5,intensity]         0.8492  0.0174       0.6703       4      4
+roi[p=0.25,j=0.1,K=10,intensity]        0.8489  0.0218       0.6615       4      4
+roi[p=0.25,j=0.1,K=1,var]               0.8481  0.0189       0.6716       4      4
+roi[p=0.25,j=0.1,K=1,blend]             0.8440  0.0232       0.6573       4      4
+roi[p=0.1,j=0.1,K=5,intensity]          0.8440  0.0128       0.6669       4      4
+rrc                                     0.8437  0.0251       0.6518       4      4
+roi[p=0.25,j=0.1,K=3,intensity]         0.8429  0.0283       0.6612       4      4
+none                                    0.8427  0.0178       0.6632       4      4
+roi[p=0.25,j=0.1,K=5,blend]             0.8422  0.0294       0.6595       4      4
+randcrop[p=0.25,j=0.1,K=1,intensity]    0.8421  0.0235       0.6560       4      4
+roi[p=0.25,j=0.1,K=1,random]            0.8417  0.0210       0.6527       4      4
+roi[p=0.25,j=0.1,K=1,log]               0.8412  0.0166       0.6637       4      4
+roi[p=0.1,j=0.1,K=1,intensity]          0.8409  0.0210       0.6577       4      4
+roi[p=0.1,j=0.1,K=1,blend]              0.8403  0.0241       0.6584       4      4
+[chosen] bank=intensity p_crop=0.25 K=1 jitter=0.1

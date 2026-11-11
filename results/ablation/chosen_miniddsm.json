@@ -1,0 +1,19 @@
+{
+ "bank": "intensity",
+ "p_crop": 0.25,
+ "roi_k": 1,
+ "jitter": 0.1,
+ "selected_on": "mean breast-level AUC over cv folds",
+ "dataset": "miniddsm",
+ "backbone": "effb0",
+ "grid_mean_auc": {
+  "blend,p=0.1,K=1": 0.84032,
+  "blend,p=0.1,K=5": 0.85091,
+  "blend,p=0.25,K=1": 0.84397,
+  "blend,p=0.25,K=5": 0.84221,
+  "intensity,p=0.1,K=1": 0.84092,
+  "intensity,p=0.1,K=5": 0.84397,
+  "intensity,p=0.25,K=1": 0.85223,
+  "intensity,p=0.25,K=5": 0.84921
+ }
+}

@@ -1,0 +1,62 @@
+ dataset                model                                  arm  auc_mean  auc_sd  pr_auc_mean  pr_auc_sd  brier_mean  ece_mean  seeds    n  n_pos
+    cmmd convnext_t/gap/image                                 none    0.8499     NaN       0.9342        NaN      0.1504    0.0635      1 1867   1313
+    cmmd convnext_t/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]    0.8222     NaN       0.9189        NaN      0.1765    0.1288      1 1867   1313
+    cmmd convnext_t/gap/image      roi[p=0.25,j=0.1,K=1,intensity]    0.8069     NaN       0.9098        NaN      0.1801    0.1349      1 1867   1313
+    cmmd  effb0/attnmil/image                                 none    0.8496     NaN       0.9337        NaN      0.1509    0.0807      1 1867   1313
+    cmmd  effb0/attnmil/image      roi[p=0.25,j=0.1,K=1,intensity]    0.8571     NaN       0.9378        NaN      0.1510    0.0856      1 1867   1313
+    cmmd     effb0/gap/breast                                 none    0.8308     NaN       0.9242        NaN      0.1741    0.1215      1 1867   1313
+    cmmd     effb0/gap/breast      roi[p=0.25,j=0.1,K=1,intensity]    0.8464     NaN       0.9349        NaN      0.1653    0.1068      1 1867   1313
+    cmmd      effb0/gap/image                               cutmix    0.8370     NaN       0.9265        NaN      0.1577    0.0943      1 1867   1313
+    cmmd      effb0/gap/image                                 none    0.8487     NaN       0.9339        NaN      0.1497    0.0698      1 1867   1313
+    cmmd      effb0/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]    0.8529     NaN       0.9367        NaN      0.1537    0.0899      1 1867   1313
+    cmmd      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity]    0.8552     NaN       0.9379        NaN      0.1535    0.0929      1 1867   1313
+    cmmd      effb0/gap/image                                  rrc    0.8376     NaN       0.9303        NaN      0.1718    0.1363      1 1867   1313
+    cmmd   resnet50/gap/image                                 none    0.7951     NaN       0.9092        NaN      0.1882    0.1478      1 1867   1313
+    cmmd   resnet50/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]    0.7757     NaN       0.8999        NaN      0.1982    0.1626      1 1867   1313
+    cmmd   resnet50/gap/image      roi[p=0.25,j=0.1,K=1,intensity]    0.7898     NaN       0.9074        NaN      0.1881    0.1444      1 1867   1313
+miniddsm convnext_t/gap/image                                 none    0.8311  0.0178       0.6140     0.0607      0.1410    0.1404      3  780    153
+miniddsm convnext_t/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]    0.6962  0.1160       0.4143     0.1597      0.2120    0.2663      3  780    153
+miniddsm convnext_t/gap/image      roi[p=0.25,j=0.1,K=1,intensity]    0.7871  0.0349       0.5415     0.0532      0.1867    0.2377      3  780    153
+miniddsm  effb0/attnmil/image                                 none    0.8818  0.0059       0.7269     0.0112      0.1007    0.0565      3  780    153
+miniddsm  effb0/attnmil/image      roi[p=0.25,j=0.1,K=1,intensity]    0.8753  0.0058       0.7213     0.0062      0.1089    0.0820      3  780    153
+miniddsm     effb0/gap/breast                                 none    0.8424  0.0016       0.6780     0.0097      0.1228    0.0920      3  780    153
+miniddsm     effb0/gap/breast      roi[p=0.25,j=0.1,K=1,intensity]    0.8634  0.0067       0.7012     0.0151      0.1322    0.1096      3  780    153
+miniddsm      effb0/gap/image                               cutmix    0.8801  0.0032       0.7287     0.0183      0.1056    0.0885      3  780    153
+miniddsm      effb0/gap/image                                 none    0.8675  0.0048       0.7069     0.0031      0.1080    0.0650      3  780    153
+miniddsm      effb0/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]    0.8797  0.0021       0.7279     0.0118      0.1122    0.1002      3  780    153
+miniddsm      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity]    0.8752  0.0091       0.7206     0.0076      0.1113    0.0938      3  780    153
+miniddsm      effb0/gap/image                                  rrc    0.8664  0.0060       0.7095     0.0034      0.1308    0.1500      3  780    153
+miniddsm   resnet50/gap/image                                 none    0.8438  0.0013       0.6589     0.0010      0.1252    0.1217      3  780    153
+miniddsm   resnet50/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]    0.8404  0.0112       0.6532     0.0123      0.1400    0.1636      3  780    153
+miniddsm   resnet50/gap/image      roi[p=0.25,j=0.1,K=1,intensity]    0.8429  0.0059       0.6567     0.0105      0.1346    0.1511      3  780    153
+
+ dataset                model                                  arm                            reference  delta_auc  ci95_lo  ci95_hi  p_holm  equivalent_within_margin
+    cmmd convnext_t/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0277  -0.0418  -0.0140  0.0280                     False
+    cmmd convnext_t/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0430  -0.0585  -0.0267  0.0280                     False
+    cmmd convnext_t/gap/image      roi[p=0.25,j=0.1,K=1,intensity] randcrop[p=0.25,j=0.1,K=1,intensity]    -0.0153  -0.0329   0.0013  1.0000                     False
+    cmmd  effb0/attnmil/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none     0.0075  -0.0032   0.0186  1.0000                     False
+    cmmd     effb0/gap/breast      roi[p=0.25,j=0.1,K=1,intensity]                                 none     0.0155   0.0034   0.0278  0.1799                     False
+    cmmd      effb0/gap/image                               cutmix                                 none    -0.0117  -0.0224  -0.0012  0.5937                     False
+    cmmd      effb0/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]                                 none     0.0042  -0.0076   0.0160  1.0000                     False
+    cmmd      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none     0.0065  -0.0047   0.0176  1.0000                     False
+    cmmd      effb0/gap/image                                  rrc                                 none    -0.0111  -0.0246   0.0020  1.0000                     False
+    cmmd      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity] randcrop[p=0.25,j=0.1,K=1,intensity]     0.0023  -0.0072   0.0122  1.0000                     False
+    cmmd      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                  rrc     0.0176   0.0066   0.0288  0.0660                     False
+    cmmd   resnet50/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0193  -0.0303  -0.0083  0.0460                     False
+    cmmd   resnet50/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0052  -0.0162   0.0056  1.0000                     False
+    cmmd   resnet50/gap/image      roi[p=0.25,j=0.1,K=1,intensity] randcrop[p=0.25,j=0.1,K=1,intensity]     0.0141   0.0040   0.0242  0.1469                     False
+miniddsm convnext_t/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]                                 none    -0.1349  -0.1637  -0.1047  0.0280                     False
+miniddsm convnext_t/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0440  -0.0619  -0.0266  0.0280                     False
+miniddsm convnext_t/gap/image      roi[p=0.25,j=0.1,K=1,intensity] randcrop[p=0.25,j=0.1,K=1,intensity]     0.0909   0.0617   0.1187  0.0280                     False
+miniddsm  effb0/attnmil/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0065  -0.0195   0.0068  1.0000                     False
+miniddsm     effb0/gap/breast      roi[p=0.25,j=0.1,K=1,intensity]                                 none     0.0210   0.0053   0.0385  0.1899                     False
+miniddsm      effb0/gap/image                               cutmix                                 none     0.0126   0.0007   0.0250  0.5937                     False
+miniddsm      effb0/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]                                 none     0.0122   0.0010   0.0240  0.5937                     False
+miniddsm      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none     0.0077  -0.0046   0.0207  1.0000                     False
+miniddsm      effb0/gap/image                                  rrc                                 none    -0.0011  -0.0171   0.0153  1.0000                     False
+miniddsm      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity] randcrop[p=0.25,j=0.1,K=1,intensity]    -0.0045  -0.0140   0.0053  1.0000                     False
+miniddsm      effb0/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                  rrc     0.0088  -0.0050   0.0235  1.0000                     False
+miniddsm   resnet50/gap/image randcrop[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0034  -0.0167   0.0094  1.0000                     False
+miniddsm   resnet50/gap/image      roi[p=0.25,j=0.1,K=1,intensity]                                 none    -0.0009  -0.0127   0.0108  1.0000                     False
+miniddsm   resnet50/gap/image      roi[p=0.25,j=0.1,K=1,intensity] randcrop[p=0.25,j=0.1,K=1,intensity]     0.0026  -0.0086   0.0142  1.0000                     False
+[done] results in results
