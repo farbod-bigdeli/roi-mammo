@@ -7,3 +7,9 @@ data/*/lesions/
 *.pt
 .ipynb_checkpoints/
 # keep: data/*/index.csv, data/*/split.csv, data/*/split_report.txt, data/*/roi_bank_*.json, results/
+*:Zone.Identifier
+results/
+review_checks.zip
+*:Zone.Identifier
+results/
+review_checks.zip

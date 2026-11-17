@@ -147,12 +147,18 @@ class MammoDataset(Dataset):
             return img
         if self.arm not in ("roi", "randcrop") or rng.random() >= self.p:
             return img
+        x0, y0, x1, y1 = self.crop_box(image_id, H, W, rng)
+        return img[y0:y1, x0:x1]
+
+    def crop_box(self, image_id, H, W, rng, tissue=None, coords=None):
+        """Box of a roi/randcrop crop, given that a crop is taken (used by _crop and by cropreplay).
+        ``coords`` (np.nonzero(tissue)) only saves recomputation; it does not change the draws."""
         boxes = self.bank[image_id][: self.k]
-        tissue = self._tissue(image_id)
+        tissue = self._tissue(image_id) if tissue is None else tissue
         for _ in range(10):
             b = boxes[rng.integers(len(boxes))]
             if self.arm == "randcrop":
-                b = random_box_like(b[2] - b[0], b[3] - b[1], tissue, rng)
+                b = random_box_like(b[2] - b[0], b[3] - b[1], tissue, rng, coords)
             x0, y0, x1, y1 = jitter_box(b, W, H, self.jit, rng)
             if tissue[y0:y1, x0:x1].mean() >= self.min_tissue:
                 break
@@ -160,7 +166,7 @@ class MammoDataset(Dataset):
             x0, y0, x1, y1 = boxes[0][:4]
         if self.crop_fit == "fill":
             x0, y0, x1, y1 = fit_aspect(x0, y0, x1, y1, W, H, self.h / self.w)
-        return img[y0:y1, x0:x1]
+        return x0, y0, x1, y1
 
     def _one(self, i, rng):
         r = self.df.iloc[i]

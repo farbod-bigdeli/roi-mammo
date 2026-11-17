@@ -1,0 +1,39 @@
+{
+  "title": "roi-mammo: code for \"Region-of-Interest Augmentation for Mammography Classification under Patient-Level Cross-Validation\"",
+  "upload_type": "software",
+  "version": "1.0",
+  "description": "Code, pre-registered analysis plan and review checks for a controlled evaluation of label-free, saliency-guided region-of-interest (ROI) cropping as a training augmentation for breast-level mammogram classification on Mini-DDSM and CMMD, compared with standard augmentation, RandomResizedCrop, CutMix and size-matched random crops. Accompanies arXiv:2509.20585 (v3).",
+  "creators": [
+    {
+      "name": "Bigdeli, Farbod",
+      "affiliation": "The University of Texas at Arlington"
+    },
+    {
+      "name": "Mohammadagha, Mohsen",
+      "affiliation": "The University of Texas at Arlington"
+    },
+    {
+      "name": "Bigdeli, Ali",
+      "affiliation": "Colorado State University"
+    }
+  ],
+  "license": "MIT",
+  "keywords": [
+    "mammography",
+    "data augmentation",
+    "region of interest",
+    "saliency",
+    "pre-registration",
+    "Mini-DDSM",
+    "CMMD",
+    "deep learning"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "arXiv:2509.20585",
+      "relation": "isSupplementTo",
+      "scheme": "arxiv",
+      "resource_type": "publication-preprint"
+    }
+  ]
+}

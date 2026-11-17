@@ -224,6 +224,23 @@ def cmd_select_lr(a):
     print(f"[chosen] {a.backbone} lr={best:g}")
 
 
+def _unit_preds_excluding(exclude: Path | None, level: str):
+    """unit_preds, optionally without the breasts listed in a CSV (column breast_id); used for the
+    label-audit sensitivity analysis. At patient level, patients with an excluded breast are dropped."""
+    if exclude is None:
+        return unit_preds
+    ex = pd.read_csv(exclude)
+    bids, pids = set(ex.breast_id.astype(str)), set(ex.patient_id.astype(str))
+    print(f"[info] excluding {len(bids)} breasts ({len(pids)} patients) listed in {exclude}")
+
+    def up(run, lvl, fname="preds.csv"):
+        u = globals()["unit_preds"](run, lvl, fname)
+        if lvl == "breast":
+            return u[~u.key.astype(str).isin(bids)].reset_index(drop=True)
+        return u[~u.patient_id.astype(str).isin(pids)].reset_index(drop=True)
+    return up
+
+
 def cmd_final(a):
     import matplotlib
     matplotlib.use("Agg")
@@ -232,6 +249,7 @@ def cmd_final(a):
     runs = pool_oof(load_runs(a.runs, "final", a.study))
     if not runs:
         raise SystemExit("no finished final runs")
+    unit_preds = _unit_preds_excluding(a.exclude, a.level)
     a.out.mkdir(parents=True, exist_ok=True)
     per_run, comp_rows, eff = [], [], []
     for r in runs:
@@ -388,6 +406,8 @@ def main(argv=None):
     f.add_argument("--margin", type=float, default=0.01)
     f.add_argument("--n-boot", type=int, default=2000)
     f.add_argument("--out", type=Path, default=Path("results"))
+    f.add_argument("--exclude", type=Path, default=None,
+                   help="CSV of breasts (breast_id, patient_id) to leave out (label-audit sensitivity analysis)")
     a = ap.parse_args(argv)
     {"select": cmd_select, "select-lr": cmd_select_lr, "final": cmd_final}[a.cmd](a)
 

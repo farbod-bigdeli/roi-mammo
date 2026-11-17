@@ -113,6 +113,42 @@ python -m roimammo.figures arms --data-dir data/miniddsm --bank data/miniddsm/ro
 | `efficiency.csv` | throughput / memory table |
 | `data/*/split_report.txt` | dataset table, site-shortcut check |
 
+## 9. Sensitivity analyses (addendum, `prereg-v4`)
+
+Specified after the main results and registered before their runs (see the addendum in
+[ANALYSIS_PLAN.md](ANALYSIS_PLAN.md)): A1 crops that fill the input, A2 a ConvNeXt-T learning rate
+chosen on development folds, A3 seeds 2-3 on CMMD.
+
+```bash
+python -m roimammo.sweep --plan addendum-tune     # A2 tuning runs (development folds)
+python -m roimammo.analyze select-lr --backbone convnext_t
+python -m roimammo.sweep --plan addendum          # A1-A3 final runs (study "addendum")
+python -m roimammo.analyze final --study all --out results/addendum
+```
+
+## 10. Checks added after review (no retraining)
+
+```bash
+bash review_checks.sh [CMMD_FOLDER]
+```
+
+runs, and zips the outputs of:
+
+| Script | What it does |
+|---|---|
+| `roimammo.labelaudit` | Mini-DDSM cancer cases with lesion outlines on both or neither breast; views per breast; CMMD file counts |
+| `roimammo.analyze final --exclude ...` | main analysis without the breasts of those cases |
+| `roimammo.cropreplay` | replays the training crop sampler and measures lesion retention (centroid, any pixel, area) |
+| `roimammo.foldcheck` | within-fold and per-seed AUC contrasts for the CMMD out-of-fold runs (`--study main` or `all`) |
+
+`roimammo.sitecheck` (within-site AUC, site-only baseline) and `roimammo.labelcheck` (masks covering
+most of the frame) are further data checks used in the paper.
+
+## Citation and license
+
+Paper: arXiv:2509.20585 (v3). Code archived on Zenodo (DOI on the release page). MIT License, see
+[LICENSE](LICENSE).
+
 ## Design notes (what changed from arXiv v1-v2)
 
 - Labels and units: breast-level labels (a cancer patient's healthy breast is no longer positive);

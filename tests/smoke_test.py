@@ -63,9 +63,19 @@ def main():
     sh("roimammo.analyze", "final", "--study", "all", "--runs", runs, "--out", res / "addendum", "--n-boot", 200)
     sh("roimammo.figures", "examples", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     sh("roimammo.figures", "arms", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
+    # peer-review checks: label audit (+ analysis without the affected breasts), crop replay, within-fold CMMD
+    sh("roimammo.labelaudit", "--data-root", data, "--out", res / "labelaudit", "--cmmd-root", t / "raw_cmmd")
+    sh("roimammo.analyze", "final", "--runs", runs, "--out", res / "labelaudit" / "sens_breast", "--n-boot", 200,
+       "--exclude", res / "labelaudit" / "exclude_breasts.csv")
+    sh("roimammo.cropreplay", "--data-dir", data / "miniddsm", "--results", res, "--draws", 2, "--seeds", 1,
+       "--img-h", 128, "--img-w", 96)
+    sh("roimammo.foldcheck", "--runs", runs, "--data-root", data, "--dataset", "cmmd", "--n-boot", 50,
+       "--out", res / "foldcheck")
     need = ["chosen_miniddsm.json", "comparisons_breast.csv", "forest_breast.pdf", "final_summary_breast.csv",
             "efficiency.csv", "fig_examples_miniddsm.pdf", "fig_arms_miniddsm.pdf", "cv_grid_miniddsm_effb0.pdf",
-            "chosen_lr_convnext_t.json", "addendum/comparisons_breast.csv"]
+            "chosen_lr_convnext_t.json", "addendum/comparisons_breast.csv", "labelaudit/labelaudit.txt",
+            "labelaudit/sens_breast/comparisons_breast.csv", "cropreplay/cropreplay_summary.csv",
+            "foldcheck/foldcheck_cmmd.csv"]
     missing = [n for n in need if not (res / n).exists()]
     if missing:
         sys.exit(f"SMOKE TEST FAILED, missing: {missing}")
