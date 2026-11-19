@@ -42,7 +42,7 @@ The splits, excluded patients and images, ROI banks and quality-control files ar
 repository under data/. No images and no model weights are included. Mini-DDSM and CMMD must be
 obtained from their sources (Kaggle and The Cancer Imaging Archive) to retrain.
 
-To reproduce the tables without training: clone the code at tag v1.0, unzip this file in the
+To reproduce the tables without training: clone the code at tag v{version}, unzip this file in the
 repository root, and run for example
     python -m roimammo.analyze final --level breast
     python -m roimammo.analyze final --study all --out results/addendum
