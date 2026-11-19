@@ -61,6 +61,20 @@ def main():
     if (res / "comparisons_breast.csv").read_bytes() != before:
         sys.exit("SMOKE TEST FAILED: addendum runs changed the main analysis")
     sh("roimammo.analyze", "final", "--study", "all", "--runs", runs, "--out", res / "addendum", "--n-boot", 200)
+    # addendum B: placement-matched control (random-score bank); must not change main or addendum-A results
+    sh("roimammo.roibank", "--data-dir", data / "cmmd", "--variant", "random", "--workers", 2, "--overlays", 0)
+    sh("roimammo.sweep", "--plan", "control", "--data-root", data, "--runs", runs, "--results", res, "--seeds", 1, 2,
+       "--dry-run")
+    sh("roimammo.sweep", "--plan", "control", "--data-root", data, "--runs", runs, "--results", res, "--seeds", 1, 2,
+       "--filter", "--backbone effb0", "--", *tiny)
+    before_a = (res / "addendum" / "comparisons_breast.csv").read_bytes()
+    sh("roimammo.analyze", "final", "--runs", runs, "--out", res, "--n-boot", 200)
+    sh("roimammo.analyze", "final", "--study", "all", "--runs", runs, "--out", res / "addendum", "--n-boot", 200)
+    if (res / "comparisons_breast.csv").read_bytes() != before or \
+            (res / "addendum" / "comparisons_breast.csv").read_bytes() != before_a:
+        sys.exit("SMOKE TEST FAILED: control runs changed the main or addendum analysis")
+    sh("roimammo.controlarm", "--runs", runs, "--results", res, "--out", res / "control", "--n-boot", 100,
+       "--n-hier", 50, "--workers", 1)
     sh("roimammo.figures", "examples", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     sh("roimammo.figures", "arms", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     # peer-review checks: label audit (+ analysis without the affected breasts), crop replay, within-fold CMMD
@@ -75,7 +89,7 @@ def main():
             "efficiency.csv", "fig_examples_miniddsm.pdf", "fig_arms_miniddsm.pdf", "cv_grid_miniddsm_effb0.pdf",
             "chosen_lr_convnext_t.json", "addendum/comparisons_breast.csv", "labelaudit/labelaudit.txt",
             "labelaudit/sens_breast/comparisons_breast.csv", "cropreplay/cropreplay_summary.csv",
-            "foldcheck/foldcheck_cmmd.csv"]
+            "foldcheck/foldcheck_cmmd.csv", "control/control_breast.csv"]
     missing = [n for n in need if not (res / n).exists()]
     if missing:
         sys.exit(f"SMOKE TEST FAILED, missing: {missing}")

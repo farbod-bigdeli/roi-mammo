@@ -152,7 +152,7 @@ def main(argv=None):
     ap.add_argument("--tag", default="")
     ap.add_argument("--crop-fit", choices=["letterbox", "fill"], default="letterbox",
                     help="fill: widen roi/randcrop boxes to the input aspect ratio (addendum sensitivity analysis)")
-    ap.add_argument("--study", choices=["main", "addendum"], default="main",
+    ap.add_argument("--study", choices=["main", "addendum", "control"], default="main",
                     help="addendum runs are kept out of the pre-registered main analysis")
     ap.add_argument("--max-steps", type=int, default=0, help="stop each epoch after N batches (testing)")
     ap.add_argument("--cpu", action="store_true")

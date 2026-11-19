@@ -25,7 +25,8 @@ from .metrics import aggregate, all_metrics, delong_paired, holm, paired_cluster
 
 def load_runs(root: Path, mode: str, study: str = "main") -> list[dict]:
     """Finished runs of one mode. study="main": the pre-registered runs only (default);
-    study="all": main and addendum runs together (sensitivity analyses)."""
+    study="all": main and addendum-A runs together (sensitivity analyses);
+    study="control": everything, including the addendum-B control runs (analysed by controlarm)."""
     runs = []
     for c in sorted(root.glob("*/config.json")):
         d = c.parent
@@ -37,6 +38,8 @@ def load_runs(root: Path, mode: str, study: str = "main") -> list[dict]:
         if cfg.get("tag") or cfg.get("max_steps"):  # timing/test runs (e.g. --tag _timing) never enter results
             continue
         if study == "main" and cfg.get("study", "main") != "main":
+            continue
+        if study == "all" and cfg.get("study", "main") not in ("main", "addendum"):
             continue
         cfg["dir"] = d
         cfg["dataset"] = Path(cfg["data_dir"]).name

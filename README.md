@@ -126,7 +126,19 @@ python -m roimammo.sweep --plan addendum          # A1-A3 final runs (study "add
 python -m roimammo.analyze final --study all --out results/addendum
 ```
 
-## 10. Checks added after review (no retraining)
+## 10. Addendum B: placement-matched control (`prereg-v5`)
+
+Is an ROI advantage over random crops due to the saliency, or to the ROI boxes sitting more
+centrally in the breast? Addendum B adds a "central random box" arm: the ROI arm with the
+random-score bank (same windows, sizes and placement rules, no image content).
+
+```bash
+python -m roimammo.roibank --data-dir data/cmmd --variant random --overlays 0   # Mini-DDSM has it from the ablation
+python -m roimammo.sweep --plan control      # 36 runs, --study control
+python -m roimammo.controlarm                # results/control/
+```
+
+## 11. Checks added after review (no retraining)
 
 ```bash
 bash review_checks.sh [CMMD_FOLDER]
@@ -141,6 +153,8 @@ runs, and zips the outputs of:
 | `roimammo.cropreplay` | replays the training crop sampler and measures lesion retention (centroid, any pixel, area) |
 | `roimammo.foldcheck` | within-fold and per-seed AUC contrasts for the CMMD out-of-fold runs (`--study main` or `all`) |
 
+`roimammo.reanalysis` repeats every comparison with 20,000 bootstrap replicates, seed resampling,
+alternative Holm families, adjusted equivalence tests, site strata and a patient max score.
 `roimammo.sitecheck` (within-site AUC, site-only baseline) and `roimammo.labelcheck` (masks covering
 most of the frame) are further data checks used in the paper.
 

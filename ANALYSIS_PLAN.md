@@ -112,3 +112,43 @@ differences over three seeds, as for Mini-DDSM.
 output, which also re-reports the main comparisons with the added seeds. Addendum results are
 reported as sensitivity analyses, separately from the pre-registered results, whatever their
 direction.
+
+## Addendum B (written 18 Nov 2026, after the main results, the addendum and the reanalysis; fixed before any run below)
+The main analysis and addendum A are final and are not changed by this addendum. Addendum B was
+added because a review pointed out that the random-crop control differs from the ROI arm in more
+than the saliency: ROI boxes come from windows that need at least 50% breast tissue and are scored
+inside the eroded breast, so they also sit more centrally than random crops, which are centred on
+any breast pixel and need only 30% tissue. In the reanalysis with 20,000 bootstrap replicates,
+ResNet-50 on CMMD with three seeds scored higher with ROI crops than with random crops (+0.010,
+Holm p 0.049 within addendum A). Addendum B asks whether that kind of difference comes from the
+saliency or from the placement.
+
+**B1. Placement-matched control.** A third crop arm, "central random box", uses the ROI arm unchanged
+(p, K, jitter, letterbox, tissue redraw) with the random-score bank (`roi_bank_random.json`,
+`roibank --variant random`). That bank uses the same candidate windows, sizes, tissue rule and
+non-maximum suppression as the saliency banks; each window is scored by the mean of uniform noise
+inside the eroded breast interior (fixed seed per image), so windows lying fully inside the
+interior are preferred and ties are broken at random. It shares the placement rules of the ROI
+boxes and uses no image content. Runs carry `--study control`. Backbones: EfficientNet-B0 and
+ResNet-50. Mini-DDSM: locked test set, seeds 1-3. CMMD: out of fold, seeds 1-3 (5 folds each).
+Plan: `sweep --plan control` (36 runs). The Standard, Random crop and ROI crop runs are reused from
+the main study and from addendum A3 (CMMD seeds 2-3).
+
+**Comparisons** (per dataset and backbone; 12 in total):
+- B-primary: ROI crop vs central random box. This estimates the value of the saliency score with
+  the placement held fixed.
+- Central random box vs Random crop. This estimates the value of the placement rules.
+- Central random box vs Standard.
+
+**Analysis.** `controlarm` computes the paired, seed-averaged breast-level AUC difference with a
+patient bootstrap (20,000 replicates), a two-level bootstrap over seeds and patients (5,000
+replicates), Holm correction within these 12 comparisons, and equivalence within +-0.01 by a
+bootstrap TOST p-value, Holm-adjusted within the same 12. Results are reported whatever their
+direction, separately from the pre-specified and addendum A results.
+
+**Interpretation fixed in advance.** For each dataset and backbone, using the 95% patient-bootstrap
+intervals: (a) if ROI crop minus central random box lies above zero, the ROI advantage is
+attributed to the saliency; (b) if central random box minus Random crop lies above zero and ROI
+crop minus central random box includes zero, an ROI advantage over random crops is attributed to
+placement; (c) anything else is reported as inconclusive. The case of interest is ResNet-50 on
+CMMD; the intervals that also resample seeds are reported alongside.
