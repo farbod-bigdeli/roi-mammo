@@ -23,6 +23,17 @@ Addendum B (ANALYSIS_PLAN.md; runs carry --study control):
     control        effb0 and resnet50, ROI arm at the chosen p, K and jitter with the random-score
                    bank ("central random box"); Mini-DDSM seeds 1-3, CMMD seeds 1-3 x 5 folds
                    -> then: python -m roimammo.controlarm
+Addendum C (ANALYSIS_PLAN.md; runs carry --study convergence):
+    convergence-lr   Step 1a: effb0 and resnet50, standard augmentation, learning rate in {2e-4, 1e-4},
+                     30 epochs, Mini-DDSM development folds 0-3, seed 1
+                     -> then: python -m roimammo.convergence select-lr
+    convergence-len  Step 1b: at the chosen rate, standard, ROI, random crop and central random box,
+                     30 and 50 epochs, development folds 0-1, seed 1
+                     -> then: python -m roimammo.convergence select-len
+    convergence      Step 2: the four arms at the chosen rate and length (CMMD matched in samples),
+                     seeds 4-6, blinded (--eval-metrics 0); Mini-DDSM: effb0 and resnet50;
+                     CMMD: resnet50 only. CMMD runs are listed first.
+                     -> then, once all runs are finished: python -m roimammo.convergence analyze
 Final/extra evaluation: datasets with a locked test set (Mini-DDSM) use seeds 1-3, one run per
 seed. Datasets without a test set (CMMD, splits made with --test-frac 0) are evaluated
 out-of-fold: one run per fold with seed 1 (--oof-seeds), pooled by the analysis.
@@ -55,6 +66,12 @@ ABL_BANKS = ("blend", "intensity", "var", "log", "random")
 ADD_LRS = (2e-4, 1e-4, 5e-5)      # addendum A2: ConvNeXt-T learning-rate grid
 ADD_OOF_SEEDS = (2, 3)            # addendum A3: extra seeds for out-of-fold datasets
 ADD_CONTROL_SEEDS = (1, 2, 3)     # addendum B: seeds for out-of-fold datasets
+CONV_BACKBONES = ("effb0", "resnet50")   # addendum C
+CONV_LRS = (2e-4, 1e-4)
+CONV_EPOCHS = (30, 50)
+CONV_LEN_FOLDS = (0, 1)
+CONV_SEEDS = (4, 5, 6)
+CONV_SETTINGS = {"miniddsm": ("effb0", "resnet50"), "cmmd": ("resnet50",)}
 
 
 def chosen(results: Path, dataset="miniddsm") -> dict:
@@ -181,6 +198,57 @@ def plan(name: str, a) -> list[list[str]]:
                 for bb in ("effb0", "resnet50"):
                     cmds.append(run(ds, *base, "--backbone", bb, "--arm", "roi", "--bank", bank(ds, "random"), *crop,
                                     "--study", "control"))
+    elif name in ("convergence-lr", "convergence-len", "convergence"):
+        c = chosen(a.results)
+        crop = ["--p-crop", c["p_crop"], "--jitter", c["jitter"], "--roi-k", c["roi_k"]]
+        cb = c.get("bank", "blend")
+        conv = a.results / "convergence"
+
+        def arms(ds):
+            for b in ("random",):
+                if not bank(ds, b).exists():
+                    sys.exit(f"{bank(ds, b)} missing: python -m roimammo.roibank --data-dir {a.data_root / ds} "
+                             "--variant random --overlays 0")
+            return [["--arm", "none"],
+                    ["--arm", "roi", "--bank", bank(ds, cb), *crop],
+                    ["--arm", "randcrop", "--bank", bank(ds, cb), *crop],
+                    ["--arm", "roi", "--bank", bank(ds, "random"), *crop]]
+
+        def pick(kind, bb):
+            f = conv / f"chosen_{kind}_{bb}.json"
+            if not f.exists():
+                step = "select-lr" if kind == "lr" else "select-len"
+                sys.exit(f"{f} missing: run the previous step and 'python -m roimammo.convergence {step}' first")
+            return json.load(open(f))
+
+        add = ["--study", "convergence"]
+        if name == "convergence-lr":
+            ds = "miniddsm"
+            for bb in a.backbones:
+                for fold in range(a.folds):
+                    for lr in CONV_LRS:
+                        cmds.append(run(ds, "--mode", "cv", "--fold", fold, "--backbone", bb, "--seed", 1,
+                                        "--arm", "none", "--lr", lr, "--epochs", a.conv_epochs[0], *add))
+        elif name == "convergence-len":
+            ds = "miniddsm"
+            for bb in a.backbones:
+                lr = pick("lr", bb)["lr"]
+                for ep in a.conv_epochs:
+                    for fold in CONV_LEN_FOLDS:
+                        for x in arms(ds):
+                            cmds.append(run(ds, "--mode", "cv", "--fold", fold, "--backbone", bb, "--seed", 1,
+                                            *x, "--lr", lr, "--epochs", ep, *add))
+        else:
+            order = sorted(CONV_SETTINGS, key=lambda d: d != "cmmd")  # CMMD first (longest block)
+            for ds in [d for d in order if d in a.datasets]:
+                for bb in [b for b in CONV_SETTINGS[ds] if b in a.backbones]:
+                    ch = pick("conv", bb)
+                    for seed, fold in eval_units(a.data_root / ds, CONV_SEEDS, CONV_SEEDS):
+                        base = ["--mode", "final", "--seed", seed] + (["--fold", fold] if fold is not None else [])
+                        for x in arms(ds):
+                            cmds.append(run(ds, *base, "--backbone", bb, *x, "--lr", ch["lr"],
+                                            "--epochs", ch["epochs"], "--epochs-from-steps", ch["samples"],
+                                            "--eval-metrics", 0, *add))
     else:
         sys.exit(f"unknown plan {name}")
     return [[str(t) for t in c] + a.passthrough for c in cmds]
@@ -192,7 +260,8 @@ def main(argv=None):
     argv = argv[: argv.index("--")] if "--" in argv else argv
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plan", required=True, choices=["dev", "ablation", "final", "extra", "addendum-tune", "addendum",
-                                                       "control"])
+                                                       "control", "convergence-lr", "convergence-len",
+                                                       "convergence"])
     ap.add_argument("--data-root", type=Path, default=Path("data"))
     ap.add_argument("--runs", type=Path, default=Path("runs"))
     ap.add_argument("--results", type=Path, default=Path("results"))
@@ -200,6 +269,10 @@ def main(argv=None):
     ap.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3], help="for datasets with a test set")
     ap.add_argument("--oof-seeds", type=int, nargs="+", default=[1], help="for out-of-fold datasets")
     ap.add_argument("--folds", type=int, default=4, help="development folds (dev and ablation plans)")
+    ap.add_argument("--conv-epochs", type=int, nargs=2, default=list(CONV_EPOCHS),
+                    help="addendum C lengths (registered: 30 50; smaller values for testing only)")
+    ap.add_argument("--backbones", nargs="+", default=list(CONV_BACKBONES),
+                    help="addendum C backbones (registered: effb0 resnet50; fewer for testing only)")
     ap.add_argument("--shard", default="0/1", help="i/n: run every n-th command starting at i")
     ap.add_argument("--filter", default="", help="only commands containing this text")
     ap.add_argument("--dry-run", action="store_true")

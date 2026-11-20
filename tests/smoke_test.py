@@ -5,6 +5,8 @@ cv training -> selection -> final runs -> analysis -> figures, and checks the ou
 """
 import subprocess
 import sys
+
+import pandas as pd
 import tempfile
 from pathlib import Path
 
@@ -75,6 +77,35 @@ def main():
         sys.exit("SMOKE TEST FAILED: control runs changed the main or addendum analysis")
     sh("roimammo.controlarm", "--runs", runs, "--results", res, "--out", res / "control", "--n-boot", 100,
        "--n-hier", 50, "--workers", 1)
+    # addendum C: convergence experiment (tiny lengths 2/3 instead of the registered 30/50); must not change
+    # the main, addendum-A or addendum-B results, nor the development selection
+    tiny_c = [t_ for t_ in tiny if t_ not in ("--epochs", 2)]
+    before_c = (res / "control" / "control_breast.csv").read_bytes()
+    before_sel = (res / "chosen_miniddsm.json").read_bytes()
+    sh("roimammo.sweep", "--plan", "convergence-lr", "--data-root", data, "--runs", runs, "--results", res, "--folds", 2,
+       "--conv-epochs", 2, 3, "--backbones", "effb0", "--", *tiny_c)
+    sh("roimammo.convergence", "select-lr", "--runs", runs, "--results", res, "--backbones", "effb0", "--lengths", 2, 3,
+       "--folds", 2)
+    sh("roimammo.sweep", "--plan", "convergence-len", "--data-root", data, "--runs", runs, "--results", res,
+       "--conv-epochs", 2, 3, "--backbones", "effb0", "--", *tiny_c)
+    sh("roimammo.convergence", "select-len", "--runs", runs, "--results", res, "--backbones", "effb0", "--lengths", 2, 3)
+    sh("roimammo.sweep", "--plan", "convergence", "--data-root", data, "--runs", runs, "--results", res,
+       "--backbones", "effb0", "--", *tiny_c)
+    for f in runs.glob("*_s4/log.csv"):  # blinded runs log no held-out metric
+        if any(c.startswith("auc") for c in pd.read_csv(f).columns):
+            sys.exit(f"SMOKE TEST FAILED: blinded run logged a held-out metric ({f})")
+    sh("roimammo.convergence", "analyze", "--runs", runs, "--results", res, "--data-root", data, "--n-boot", 100,
+       "--workers", 1, "--settings", "miniddsm:effb0")
+    sh("roimammo.analyze", "final", "--runs", runs, "--out", res, "--n-boot", 200)
+    sh("roimammo.analyze", "final", "--study", "all", "--runs", runs, "--out", res / "addendum", "--n-boot", 200)
+    sh("roimammo.controlarm", "--runs", runs, "--results", res, "--out", res / "control", "--n-boot", 100,
+       "--n-hier", 50, "--workers", 1)
+    sh("roimammo.analyze", "select", "--runs", runs, "--dataset", "miniddsm", "--out", res)
+    if (res / "comparisons_breast.csv").read_bytes() != before or \
+            (res / "addendum" / "comparisons_breast.csv").read_bytes() != before_a or \
+            (res / "control" / "control_breast.csv").read_bytes() != before_c or \
+            (res / "chosen_miniddsm.json").read_bytes() != before_sel:
+        sys.exit("SMOKE TEST FAILED: convergence runs changed an earlier analysis")
     sh("roimammo.figures", "examples", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     sh("roimammo.figures", "arms", "--data-dir", data / "miniddsm", "--bank", data / "miniddsm" / "roi_bank_blend.json", "--out", res)
     # peer-review checks: label audit (+ analysis without the affected breasts), crop replay, within-fold CMMD
@@ -89,7 +120,8 @@ def main():
             "efficiency.csv", "fig_examples_miniddsm.pdf", "fig_arms_miniddsm.pdf", "cv_grid_miniddsm_effb0.pdf",
             "chosen_lr_convnext_t.json", "addendum/comparisons_breast.csv", "labelaudit/labelaudit.txt",
             "labelaudit/sens_breast/comparisons_breast.csv", "cropreplay/cropreplay_summary.csv",
-            "foldcheck/foldcheck_cmmd.csv", "control/control_breast.csv"]
+            "foldcheck/foldcheck_cmmd.csv", "control/control_breast.csv",
+            "convergence/chosen_conv_effb0.json", "convergence/convergence_breast.csv"]
     missing = [n for n in need if not (res / n).exists()]
     if missing:
         sys.exit(f"SMOKE TEST FAILED, missing: {missing}")

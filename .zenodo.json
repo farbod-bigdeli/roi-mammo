@@ -1,8 +1,8 @@
 {
-  "title": "roi-mammo: code for \"Region-of-Interest Augmentation for Mammography Classification under Patient-Level Cross-Validation\"",
+  "title": "roi-mammo: code for \"Region-of-Interest Augmentation for Mammography Classification: A Controlled Evaluation of Label-Free, Brightness-Ranked Cropping under Patient-Level Splits\"",
   "upload_type": "software",
-  "version": "1.1",
-  "description": "Code, pre-registered analysis plan (with addenda A and B), the placement-matched control and the post-review reanalysis for a controlled evaluation of label-free, saliency-guided region-of-interest (ROI) cropping as a training augmentation for breast-level mammogram classification on Mini-DDSM and CMMD, compared with standard augmentation, RandomResizedCrop, CutMix, size-matched random crops and placement-matched random boxes. Accompanies arXiv:2509.20585 (v3).",
+  "version": "1.2",
+  "description": "Code, pre-registered analysis plan (with addenda A and B), the placement-matched control, the post-review reanalysis and the data checks for a controlled evaluation of label-free, saliency-guided region-of-interest (ROI) cropping as a training augmentation for breast-level mammogram classification on Mini-DDSM and CMMD, compared with standard augmentation, RandomResizedCrop, CutMix, size-matched random crops and placement-matched random boxes. Version 1.2 adds the checks of the third review (box sizes per bank, CMMD subsets, white-patch removal, training loss per arm). Accompanies arXiv:2509.20585 (v3).",
   "creators": [
     {
       "name": "Bigdeli, Farbod",

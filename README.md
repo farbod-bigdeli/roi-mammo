@@ -158,6 +158,34 @@ alternative Holm families, adjusted equivalence tests, site strata and a patient
 `roimammo.sitecheck` (within-site AUC, site-only baseline) and `roimammo.labelcheck` (masks covering
 most of the frame) are further data checks used in the paper.
 
+Checks added after the third review (paper section "Checks added after a third review"):
+
+```bash
+python -m roimammo.boxsize --data-root data --out results/boxsize       # window size of each bank's top boxes
+python -m roimammo.subsetcheck --workers 8                               # CMMD D1/D2 subsets; arm contrasts within D1
+python -m roimammo.losstable                                             # training loss per arm (log.csv only)
+python -m roimammo.whitecheck --data-dir data/miniddsm --workers 8       # lesion pixels removed by the white-patch rule
+```
+
+## 12. Addendum C: training to convergence (`prereg-v6`, OSF)
+
+Registered before any of its runs (ANALYSIS_PLAN.md, addendum C). Runs carry `--study convergence`
+and the name suffix `_conv`; the earlier analyses ignore them.
+
+```bash
+# Step 1a: learning rate (Mini-DDSM development folds 0-3, standard augmentation, 30 epochs)
+python -m roimammo.sweep --plan convergence-lr
+python -m roimammo.convergence select-lr
+# Step 1b: length (four arms, 30 and 50 epochs, folds 0-1)
+python -m roimammo.sweep --plan convergence-len
+python -m roimammo.convergence select-len      # writes results/convergence/chosen_conv_<backbone>.json
+# record the choice (tag prereg-v7, OSF update) before Step 2
+# Step 2: final runs, seeds 4-6, blinded (no held-out metric is computed during training)
+python -m roimammo.sweep --plan convergence
+# Step 3: once all 84 runs are finished (the script refuses to run earlier)
+python -m roimammo.convergence analyze --workers 8
+```
+
 ## Citation and license
 
 Paper: arXiv:2509.20585 (v3). Code archived on Zenodo (DOI on the release page). MIT License, see

@@ -25,7 +25,8 @@ RESULT_SUFFIXES = (".csv", ".txt", ".json")
 README = """roi-mammo results v{version}
 
 Per-image predictions and result tables for "Region-of-Interest Augmentation for Mammography
-Classification under Patient-Level Cross-Validation" (arXiv:2509.20585, v3).
+Classification: A Controlled Evaluation of Label-Free, Brightness-Ranked Cropping under Patient-Level Splits"
+(arXiv:2509.20585, v3).
 Code: https://github.com/farbod-bigdeli/roi-mammo (archived: {code_doi}).
 
 Contents (paths relative to the repository root):
@@ -33,9 +34,10 @@ Contents (paths relative to the repository root):
                               patient_id, breast_id, label, prob, ...)
   runs/<run>/preds_epNN.csv   development runs: predictions after each epoch
   runs/<run>/log.csv          training log; config.json: run settings; env.json: software versions
-  results/                    all result tables (main analysis, addendum in results/addendum,
-                              review checks in results/labelaudit, cropreplay, foldcheck,
-                              foldcheck_main)
+  results/                    all result tables (main analysis, addendum A in results/addendum,
+                              addendum B in results/control, review checks in results/labelaudit,
+                              cropreplay, foldcheck, foldcheck_main, reanalysis, boxsize,
+                              subsetcheck, losstable, whitecheck)
   MANIFEST.tsv                path, size and SHA-256 of every file
 
 The splits, excluded patients and images, ROI banks and quality-control files are in the code
@@ -76,7 +78,7 @@ def main(argv=None):
     ap.add_argument("--root", type=Path, default=Path("."))
     ap.add_argument("--out", type=Path, default=Path("roi-mammo-results-v1.0.zip"))
     ap.add_argument("--version", default="1.0")
-    ap.add_argument("--code-doi", default="https://doi.org/10.5281/zenodo.24326049")
+    ap.add_argument("--code-doi", default="https://doi.org/10.5281/zenodo.24376161")
     a = ap.parse_args(argv)
     files, n_runs = collect(a.root)
     if not files:

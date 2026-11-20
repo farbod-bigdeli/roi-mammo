@@ -14,3 +14,4 @@ review_checks.zip
 results/
 review_checks.zip
 roi-mammo-results-*.zip
+*:sec.endpointdlp

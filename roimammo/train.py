@@ -84,12 +84,32 @@ def run_name(a) -> str:
             crop += "_fill"
     if getattr(a, "lr", DEFAULT_LR) != DEFAULT_LR:  # non-default recipes get their own name (addendum)
         crop += f"_lr{a.lr:g}"
+    if getattr(a, "study", "main") == "convergence":  # addendum C runs never share a name with earlier runs
+        crop += "_conv"
     if a.mode == "cv":
         part = f"cv{a.fold}"
     else:
         part = "final" if has_test_set(a.data_dir) else f"final-oof{a.fold}"
     return (f"{a.data_dir.name}_{a.backbone}_{a.head}_{a.unit}_{a.arm}{crop}_"
             f"{a.img_h}x{a.img_w}_e{a.epochs}_{part}_s{a.seed}{a.tag}")
+
+
+def epochs_for_samples(a) -> int:
+    """Addendum C: epochs = max(--epochs, ceil(N / samples presented per epoch)) for this run's
+    training set (drop_last batches, so samples per epoch = floor(n / batch) * batch)."""
+    if a.unit != "image":
+        sys.exit("--epochs-from-steps supports --unit image only")
+    index = pd.read_csv(a.data_dir / "index.csv")
+    split = pd.read_csv(a.data_dir / "split.csv")
+    df = index.merge(split, on="patient_id")
+    dev = df[df.split == "dev"]
+    oof = a.mode == "final" and not (df.split == "test").any()
+    tr = dev[dev.fold != a.fold] if (a.mode == "cv" or oof) else dev
+    batches = len(tr) // a.batch
+    if a.max_steps:
+        batches = min(batches, a.max_steps)
+    per_epoch = max(1, batches * a.batch)
+    return max(a.epochs, math.ceil(a.epochs_from_steps / per_epoch))
 
 
 @torch.no_grad()
@@ -152,14 +172,21 @@ def main(argv=None):
     ap.add_argument("--tag", default="")
     ap.add_argument("--crop-fit", choices=["letterbox", "fill"], default="letterbox",
                     help="fill: widen roi/randcrop boxes to the input aspect ratio (addendum sensitivity analysis)")
-    ap.add_argument("--study", choices=["main", "addendum", "control"], default="main",
+    ap.add_argument("--study", choices=["main", "addendum", "control", "convergence"], default="main",
                     help="addendum runs are kept out of the pre-registered main analysis")
+    ap.add_argument("--epochs-from-steps", type=int, default=0,
+                    help="addendum C: minimum number of training samples presented; the number of epochs becomes "
+                         "max(--epochs, ceil(N / samples per epoch)), computed from this run's training set")
+    ap.add_argument("--eval-metrics", type=int, default=1,
+                    help="0 = save held-out predictions but compute and log no held-out metric (blinded runs)")
     ap.add_argument("--max-steps", type=int, default=0, help="stop each epoch after N batches (testing)")
     ap.add_argument("--cpu", action="store_true")
     a = ap.parse_args(argv)
 
     if a.arm in ("roi", "randcrop") and not a.bank:
         sys.exit("--bank is required for the roi and randcrop arms")
+    if a.epochs_from_steps:
+        a.epochs = epochs_for_samples(a)
     out = a.out_root / run_name(a)
     if (out / "DONE").exists():
         print(f"[skip] {out} already finished")
@@ -277,7 +304,8 @@ def main(argv=None):
             row["eval_s"] = time.perf_counter() - t1
             row["eval_img_per_s"] = len(p) * imgs_per_sample / row["eval_s"]
             row["eval_peak_alloc_mib"] = torch.cuda.max_memory_allocated() / 2**20 if device.type == "cuda" else float("nan")
-            row.update(quick_metrics(p))
+            if a.eval_metrics:
+                row.update(quick_metrics(p))
             if a.mode == "cv":
                 p.to_csv(out / f"preds_ep{ep:02d}.csv", index=False)
             if ep == a.epochs:

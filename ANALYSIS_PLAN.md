@@ -152,3 +152,97 @@ attributed to the saliency; (b) if central random box minus Random crop lies abo
 crop minus central random box includes zero, an ROI advantage over random crops is attributed to
 placement; (c) anything else is reported as inconclusive. The case of interest is ResNet-50 on
 CMMD; the intervals that also resample seeds are reported alongside.
+
+## Addendum C (written 20 November 2026, after the main results, addenda A and B, the reanalysis and five reviews; fixed before any run below; also registered on OSF)
+The main analysis and addenda A and B are final and are not changed by this addendum. Every arm of
+the main study was trained for ten epochs with one shared recipe. ResNet-50 was far from converged
+(on CMMD a final training loss of 0.30 to 0.34, against 0.41 for a constant prediction), every crop
+arm ended with a higher training loss than standard augmentation, and the one positive finding
+(ResNet-50 on CMMD, ROI crop above random crop) arose in this regime. Addendum C asks whether ROI
+cropping beats standard augmentation, and whether that ResNet-50 advantage replicates, when each
+backbone is trained with a learning rate and length chosen on development folds. The ten-epoch
+results remain the fixed-budget comparison. Runs carry `--study convergence` and the name suffix
+`_conv`; `analyze` (main, all) and `controlarm` ignore them.
+
+**Arms.** Standard, ROI crop, Random crop and central random box, with the frozen ROI setting
+(brightness, p = 0.25, K = 1, jitter 0.1, letterbox). Backbones: EfficientNet-B0 and ResNet-50.
+ConvNeXt-T is not rerun (addendum A2). Schedule: AdamW, 5% warm-up, cosine decay over the chosen
+length; only the learning rate and the length change.
+
+**C1. Learning rate (Step 1a).** Mini-DDSM development folds 0-3, seed 1, standard augmentation,
+30 epochs, learning rate 2e-4 or 1e-4 (`sweep --plan convergence-lr`, 16 runs). Rule
+(`convergence select-lr`): the rate with the higher mean breast-level development AUC at the last
+epoch; rates within 0.002 of the best are tied and the lower rate is taken. Per backbone.
+
+**C2. Length (Step 1b).** At the chosen rate, the four arms on development folds 0-1, seed 1, as
+separate 30- and 50-epoch runs, each with its own cosine schedule (`sweep --plan convergence-len`;
+the 30-epoch standard runs of Step 1a are reused). Rule (`convergence select-len`), per backbone:
+50 epochs if, for any of the four arms, the mean development AUC of the 50-epoch runs exceeds that
+of the 30-epoch runs by 0.005 or more; otherwise 30. If 50 are chosen and any arm gained 0.01 or
+more, convergence is not claimed and the comparison is called a longer-budget comparison.
+Development AUC and training loss are recorded for every epoch, arm and length and reported;
+training loss is not used for selection. The chosen rate, length and sample count are recorded
+(`prereg-v7`, OSF update) before any run of C3.
+
+**C3. Final runs (Step 2).** Fresh seeds 4, 5 and 6. Mini-DDSM (locked test set): EfficientNet-B0
+and ResNet-50, four arms, three seeds (24 runs). CMMD (out of fold, five folds): ResNet-50, four
+arms, three seeds (60 runs). EfficientNet-B0 on CMMD is not run. Length in training samples: S* =
+chosen epochs x the mean training-set size of the four development folds; every run trains for
+max(chosen epochs, ceil(S* / samples per epoch)) epochs, computed from that run's training set
+(`--epochs-from-steps`), so Mini-DDSM runs train for the chosen epochs and CMMD folds for about
+1.57 times as many. The design does not establish convergence on CMMD, where nothing is tuned:
+the CMMD comparison is always called a step-matched longer-budget comparison.
+
+**Blinding.** C3 runs use `--eval-metrics 0`: they save held-out predictions but compute and log no
+held-out metric; only training loss is logged. No C3 prediction is scored until all 84 runs are
+finished. `convergence analyze` refuses to run on an incomplete set and is run once.
+
+**Failed runs.** A run has failed if its final training loss exceeds 90% of the class-weighted loss
+of a constant prediction (2 ln 2 w/(1+w), w = negatives/positives; about 1.01 on Mini-DDSM and 0.37
+on CMMD). Failed runs are not rerun or replaced; they stay in the primary analysis as trained, and
+failures are reported per arm. A sensitivity analysis drops every seed (Mini-DDSM) or seed-and-fold
+unit (CMMD) in which any arm failed, identically for all arms.
+
+**Primary family (6 comparisons, Holm).** ROI crop minus Standard and ROI crop minus Random crop, for
+Mini-DDSM EfficientNet-B0, Mini-DDSM ResNet-50 and CMMD ResNet-50. The CMMD ResNet-50 ROI crop minus
+Random crop comparison is the replication test and is one-sided (ROI > random), in the direction of
+the original result; the other five are two-sided.
+
+**Secondary family (9, Holm within the family).** ROI crop minus central random box, central random
+box minus Random crop, and Random crop minus Standard, for the three settings.
+
+**Cross-budget family (6, Holm within the family).** The primary contrasts under the new recipe minus
+the same contrasts under the ten-epoch recipe (seeds 1-3; main study and addendum A3). Bootstrap: the
+same resampled patients for both recipes, seeds 1-3 and 4-6 resampled independently, arms paired
+within each recipe. These compare training recipes (rate, schedule and length may all differ); a
+significant contrast shows that the ROI effect differs under the new recipe, not that length alone
+changed it. A non-significant contrast does not show that the effect was unchanged.
+
+**Statistics.** Breast-level AUC; paired, seed-averaged differences. Primary interval and p-values:
+two-level bootstrap (seeds, then patients), 20,000 replicates. Also reported: the patient-only
+bootstrap interval, every per-seed paired effect (three seeds give only ten distinct seed
+resamples), the CMMD within-fold AUC difference, equivalence p-values (bootstrap TOST) for the
+registered margin of +-0.01 (Holm-adjusted within each family) and, as a sensitivity threshold
+only, +-0.02, the upper 95% limit of each primary comparison, and the training loss of every run.
+
+**Interpretation fixed in advance** (adjusted p = Holm-adjusted p of the primary family; upper limit
+= upper 95% limit of the two-level interval):
+- ROI crop - Standard, adjusted p < 0.05: ROI cropping helps (positive) or hurts (negative) in that
+  setting under the new recipe.
+- Not significant and upper limit below +0.01: no meaningful benefit (a benefit of 0.01 or more is
+  excluded).
+- Not significant and upper limit from +0.01 to below +0.02: a benefit of 0.02 or more is excluded;
+  smaller benefits remain possible.
+- Not significant and upper limit at or above +0.02: inconclusive.
+- CMMD ResNet-50 ROI crop - Random crop, positive with one-sided adjusted p < 0.05: the advantage is
+  replicated with fresh seeds under the new recipe. Not significant with upper limit below +0.01:
+  not replicated (a gain of 0.01 or more is excluded under the new recipe; the mechanism remains
+  open). Otherwise: replication inconclusive.
+- Statements that an effect changed with the training recipe require a significant cross-budget
+  contrast.
+With two-level intervals of about +-0.02, "upper limit below +0.01" is reachable only if ROI scores
+at or below standard augmentation; the most likely outcomes are the middle row or inconclusive.
+
+**Test-set use.** The Mini-DDSM test set has now served the main analysis, A1, A2, B and C. Its
+patients also took part in the cross-validation of arXiv versions 1 and 2 (thumbnail release). It
+is called the holdout of this revision, not an untouched test set.

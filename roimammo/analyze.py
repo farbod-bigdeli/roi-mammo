@@ -26,7 +26,8 @@ from .metrics import aggregate, all_metrics, delong_paired, holm, paired_cluster
 def load_runs(root: Path, mode: str, study: str = "main") -> list[dict]:
     """Finished runs of one mode. study="main": the pre-registered runs only (default);
     study="all": main and addendum-A runs together (sensitivity analyses);
-    study="control": everything, including the addendum-B control runs (analysed by controlarm)."""
+    study="control": main, addendum-A and addendum-B control runs (analysed by controlarm);
+    study="convergence": the addendum-C runs only (analysed by convergence)."""
     runs = []
     for c in sorted(root.glob("*/config.json")):
         d = c.parent
@@ -40,6 +41,10 @@ def load_runs(root: Path, mode: str, study: str = "main") -> list[dict]:
         if study == "main" and cfg.get("study", "main") != "main":
             continue
         if study == "all" and cfg.get("study", "main") not in ("main", "addendum"):
+            continue
+        if study == "control" and cfg.get("study", "main") not in ("main", "addendum", "control"):
+            continue
+        if study == "convergence" and cfg.get("study", "main") != "convergence":
             continue
         cfg["dir"] = d
         cfg["dataset"] = Path(cfg["data_dir"]).name
@@ -138,7 +143,7 @@ def cmd_select(a):
             ax.set_yticks(range(grid.shape[0]), [f"{x:g}" for x in grid.index])
             ax.set_xlabel("number of ROI boxes $K$")
             if v == banks[0]:
-                ax.set_ylabel("$p_{ROI}$")
+                ax.set_ylabel("crop probability $p$")
             ax.set_title({"blend": "texture saliency (blend)", "intensity": "brightness"}.get(v, v), fontsize=9)
             for i in range(grid.shape[0]):
                 for j in range(grid.shape[1]):
